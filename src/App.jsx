@@ -27,9 +27,7 @@ import {
   User,
   UserPlus,
   LogIn,
-  Briefcase,
-  ExternalLink,
-  RefreshCw
+  Briefcase
 } from "lucide-react";
 
 const initialProducts = [
@@ -194,82 +192,7 @@ const DEFAULT_ADMIN_USERS = [
   }
 ];
 
-// Headless bridge for seamless cross-domain synchronization with the storefront
-function HeadlessBridge({ products, orders, setOrders }) {
-  useEffect(() => {
-    const sendData = () => {
-      try {
-        const storedProducts = localStorage.getItem("greenbasket_products");
-        const storedOrders = localStorage.getItem("greenbasket_orders");
-        const p = storedProducts ? JSON.parse(storedProducts) : products;
-        const o = storedOrders ? JSON.parse(storedOrders) : orders;
-        window.parent.postMessage(
-          {
-            type: "GB_CATALOG_SYNC",
-            products: p,
-            orders: o
-          },
-          "*"
-        );
-      } catch (err) {
-        console.error("Bridge sync send error:", err);
-      }
-    };
-
-    sendData();
-
-    const handleStorage = (e) => {
-      if (e.key === "greenbasket_products" || e.key === "greenbasket_orders") {
-        sendData();
-      }
-    };
-    window.addEventListener("storage", handleStorage);
-
-    let ch;
-    try {
-      ch = new BroadcastChannel("gb_bridge_channel");
-      ch.onmessage = (e) => {
-        if (e.data?.type === "GB_PRODUCTS_UPDATED") {
-          sendData();
-        }
-      };
-    } catch (e) {}
-
-    const handleParent = (e) => {
-      if (!e.data || typeof e.data !== "object") return;
-      if (e.data.type === "GB_REQUEST_SYNC") {
-        sendData();
-      }
-      if (e.data.type === "GB_NEW_ORDER" && e.data.order) {
-        try {
-          const current = localStorage.getItem("greenbasket_orders");
-          const list = current ? JSON.parse(current) : orders || [];
-          const updated = [e.data.order, ...list.filter((item) => item.id !== e.data.order.id)];
-          localStorage.setItem("greenbasket_orders", JSON.stringify(updated));
-          if (setOrders) setOrders(updated);
-
-          const notifyCh = new BroadcastChannel("gb_bridge_channel");
-          notifyCh.postMessage({ type: "GB_ORDERS_UPDATED", orders: updated });
-          notifyCh.close();
-        } catch (err) {
-          console.warn("Failed to save new order in bridge", err);
-        }
-      }
-    };
-    window.addEventListener("message", handleParent);
-
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("message", handleParent);
-      if (ch) ch.close();
-    };
-  }, [products, orders, setOrders]);
-
-  return <div style={{ display: "none" }} aria-hidden="true" />;
-}
-
 function App() {
-  const isBridgeMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "bridge";
   // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -321,14 +244,7 @@ function App() {
     }
   });
 
-  const [orders, setOrders] = useState(() => {
-    try {
-      const saved = localStorage.getItem("greenbasket_orders");
-      return saved ? JSON.parse(saved) : initialOrders;
-    } catch {
-      return initialOrders;
-    }
-  });
+  const [orders] = useState(initialOrders);
   const [tab, setTab] = useState("products");
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
@@ -336,8 +252,6 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [isDragging, setIsDragging] = useState(false);
-  const [syncStatus, setSyncStatus] = useState("Live Storefront Linked");
-  const [isSyncing, setIsSyncing] = useState(false);
 
   const fileInputRef = useRef(null);
 
@@ -349,103 +263,6 @@ function App() {
       console.warn("Storage quota exceeded or unavailable", e);
     }
   }, [products]);
-
-  // Persist orders to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("greenbasket_orders", JSON.stringify(orders));
-    } catch (e) {
-      console.warn("Orders storage failed", e);
-    }
-  }, [orders]);
-
-  // Broadcast products & orders changes across all tabs and open storefront
-  useEffect(() => {
-    try {
-      const ch = new BroadcastChannel("gb_bridge_channel");
-      ch.postMessage({
-        type: "GB_PRODUCTS_UPDATED",
-        products,
-        orders,
-        timestamp: Date.now()
-      });
-      ch.close();
-    } catch (e) {}
-
-    try {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          {
-            type: "GB_PRODUCTS_UPDATED",
-            products,
-            orders,
-            timestamp: Date.now()
-          },
-          "*"
-        );
-      }
-    } catch (e) {}
-  }, [products, orders]);
-
-  // Listen for new orders dispatched from storefront
-  useEffect(() => {
-    let ch;
-    try {
-      ch = new BroadcastChannel("gb_bridge_channel");
-      ch.onmessage = (e) => {
-        if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
-          setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
-        }
-      };
-    } catch (e) {}
-
-    const handleWindowMsg = (e) => {
-      if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
-        setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
-      }
-    };
-    window.addEventListener("message", handleWindowMsg);
-
-    return () => {
-      if (ch) ch.close();
-      window.removeEventListener("message", handleWindowMsg);
-    };
-  }, []);
-
-  const handleForceSync = () => {
-    setIsSyncing(true);
-    setSyncStatus("Syncing with storefront...");
-    try {
-      const ch = new BroadcastChannel("gb_bridge_channel");
-      ch.postMessage({
-        type: "GB_PRODUCTS_UPDATED",
-        products,
-        orders,
-        timestamp: Date.now()
-      });
-      ch.close();
-    } catch (e) {}
-
-    try {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          {
-            type: "GB_PRODUCTS_UPDATED",
-            products,
-            orders,
-            timestamp: Date.now()
-          },
-          "*"
-        );
-      }
-    } catch (e) {}
-
-    setTimeout(() => {
-      setIsSyncing(false);
-      setSyncStatus("Storefront Synchronized!");
-      setTimeout(() => setSyncStatus("Live Storefront Linked"), 2500);
-    }, 450);
-  };
 
   // Persist registered admin accounts
   useEffect(() => {
@@ -658,13 +475,6 @@ function App() {
     if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     return name.slice(0, 2).toUpperCase();
   };
-
-  // -------------------------------------------------------------
-  // If Headless Bridge Mode, Render Silent Sync Worker
-  // -------------------------------------------------------------
-  if (isBridgeMode) {
-    return <HeadlessBridge products={products} orders={orders} setOrders={setOrders} />;
-  }
 
   // -------------------------------------------------------------
   // If NOT Logged In, Render Sign In & Sign Up Screen
@@ -1006,26 +816,9 @@ function App() {
           </div>
 
           <div className="topbar-right">
-            <span className="status control-status" title="Bidirectional live sync with customer storefront">
-              <i /> {syncStatus}
+            <span className="status">
+              <i /> Store is live
             </span>
-            <button
-              type="button"
-              className="sync-store-btn"
-              onClick={handleForceSync}
-              title="Force sync catalog and prices to customer storefront"
-            >
-              <RefreshCw size={13} className={isSyncing ? "spin-icon" : ""} /> Sync Store
-            </button>
-            <a
-              href="https://greenbasket-git-main-sazibkhanme6-cyber.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="live-store-link"
-              title="Open the live customer storefront in a new tab"
-            >
-              <ExternalLink size={13} /> View Storefront
-            </a>
             <div className="user-pill">
               <span className="user-pill-avatar">{getInitials(currentUser.name)}</span>
               <span className="user-pill-name">{currentUser.name}</span>
