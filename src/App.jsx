@@ -29,7 +29,14 @@ import {
   LogIn,
   Briefcase,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Settings,
+  Copy,
+  Sliders,
+  RotateCcw,
+  Download,
+  Tag as TagIcon,
+  Check
 } from "lucide-react";
 
 const initialProducts = [
@@ -194,20 +201,32 @@ const DEFAULT_ADMIN_USERS = [
   }
 ];
 
+const defaultSettings = {
+  announcement: "FREE DELIVERY on orders over $49 | Eat Fresh, Live Healthy | Support 24/7",
+  promoCode: "GREEN20",
+  promoDiscount: 20,
+  storePhone: "+880 1712-345678",
+  storeEmail: "support@greenbasket.com",
+  freeDeliveryThreshold: 49
+};
+
 // Headless bridge for seamless cross-domain synchronization with the storefront
-function HeadlessBridge({ products, orders, setOrders }) {
+function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
   useEffect(() => {
     const sendData = () => {
       try {
         const storedProducts = localStorage.getItem("greenbasket_products");
         const storedOrders = localStorage.getItem("greenbasket_orders");
+        const storedSettings = localStorage.getItem("greenbasket_settings");
         const p = storedProducts ? JSON.parse(storedProducts) : products;
         const o = storedOrders ? JSON.parse(storedOrders) : orders;
+        const s = storedSettings ? JSON.parse(storedSettings) : storeSettings;
         window.parent.postMessage(
           {
             type: "GB_CATALOG_SYNC",
             products: p,
-            orders: o
+            orders: o,
+            settings: s
           },
           "*"
         );
@@ -219,7 +238,11 @@ function HeadlessBridge({ products, orders, setOrders }) {
     sendData();
 
     const handleStorage = (e) => {
-      if (e.key === "greenbasket_products" || e.key === "greenbasket_orders") {
+      if (
+        e.key === "greenbasket_products" ||
+        e.key === "greenbasket_orders" ||
+        e.key === "greenbasket_settings"
+      ) {
         sendData();
       }
     };
@@ -229,7 +252,10 @@ function HeadlessBridge({ products, orders, setOrders }) {
     try {
       ch = new BroadcastChannel("gb_bridge_channel");
       ch.onmessage = (e) => {
-        if (e.data?.type === "GB_PRODUCTS_UPDATED") {
+        if (
+          e.data?.type === "GB_PRODUCTS_UPDATED" ||
+          e.data?.type === "GB_SETTINGS_UPDATED"
+        ) {
           sendData();
         }
       };
@@ -263,13 +289,16 @@ function HeadlessBridge({ products, orders, setOrders }) {
       window.removeEventListener("message", handleParent);
       if (ch) ch.close();
     };
-  }, [products, orders, setOrders]);
+  }, [products, orders, setOrders, storeSettings]);
 
   return <div style={{ display: "none" }} aria-hidden="true" />;
 }
 
 function App() {
-  const isBridgeMode = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("mode") === "bridge";
+  const isBridgeMode =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("mode") === "bridge";
+
   // Authentication State
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -280,7 +309,6 @@ function App() {
     }
   });
 
-  // Registered Admin Accounts in LocalStorage
   const [registeredUsers, setRegisteredUsers] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_admin_users");
@@ -290,17 +318,13 @@ function App() {
     }
   });
 
-  // Auth Mode: "signin" | "signup"
   const [authMode, setAuthMode] = useState("signin");
-
-  // Sign In State
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Sign Up State
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupRole, setSignupRole] = useState("Store Manager");
@@ -311,7 +335,7 @@ function App() {
   const [signupSuccess, setSignupSuccess] = useState("");
   const [isSigningUp, setIsSigningUp] = useState(false);
 
-  // Products & Dashboard State
+  // Products State
   const [products, setProducts] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_products");
@@ -321,6 +345,7 @@ function App() {
     }
   });
 
+  // Orders State
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_orders");
@@ -329,7 +354,20 @@ function App() {
       return initialOrders;
     }
   });
+
+  // Store Settings & Live Controls
+  const [storeSettings, setStoreSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_settings");
+      return saved ? JSON.parse(saved) : defaultSettings;
+    } catch {
+      return defaultSettings;
+    }
+  });
+
   const [tab, setTab] = useState("products");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
@@ -338,8 +376,14 @@ function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [syncStatus, setSyncStatus] = useState("Live Storefront Linked");
   const [isSyncing, setIsSyncing] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const fileInputRef = useRef(null);
+
+  const triggerToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 2600);
+  };
 
   // Persist products to localStorage
   useEffect(() => {
@@ -359,7 +403,14 @@ function App() {
     }
   }, [orders]);
 
-  // Broadcast products & orders changes across all tabs and open storefront
+  // Persist store settings to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("greenbasket_settings", JSON.stringify(storeSettings));
+    } catch (e) {}
+  }, [storeSettings]);
+
+  // Broadcast changes across tabs & to storefront
   useEffect(() => {
     try {
       const ch = new BroadcastChannel("gb_bridge_channel");
@@ -367,6 +418,7 @@ function App() {
         type: "GB_PRODUCTS_UPDATED",
         products,
         orders,
+        settings: storeSettings,
         timestamp: Date.now()
       });
       ch.close();
@@ -379,13 +431,14 @@ function App() {
             type: "GB_PRODUCTS_UPDATED",
             products,
             orders,
+            settings: storeSettings,
             timestamp: Date.now()
           },
           "*"
         );
       }
     } catch (e) {}
-  }, [products, orders]);
+  }, [products, orders, storeSettings]);
 
   // Listen for new orders dispatched from storefront
   useEffect(() => {
@@ -395,6 +448,7 @@ function App() {
       ch.onmessage = (e) => {
         if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
           setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
+          triggerToast("New customer order received!");
         }
       };
     } catch (e) {}
@@ -402,6 +456,7 @@ function App() {
     const handleWindowMsg = (e) => {
       if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
         setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
+        triggerToast("New customer order received!");
       }
     };
     window.addEventListener("message", handleWindowMsg);
@@ -421,6 +476,7 @@ function App() {
         type: "GB_PRODUCTS_UPDATED",
         products,
         orders,
+        settings: storeSettings,
         timestamp: Date.now()
       });
       ch.close();
@@ -433,6 +489,7 @@ function App() {
             type: "GB_PRODUCTS_UPDATED",
             products,
             orders,
+            settings: storeSettings,
             timestamp: Date.now()
           },
           "*"
@@ -443,20 +500,12 @@ function App() {
     setTimeout(() => {
       setIsSyncing(false);
       setSyncStatus("Storefront Synchronized!");
+      triggerToast("Live Storefront updated successfully!");
       setTimeout(() => setSyncStatus("Live Storefront Linked"), 2500);
     }, 450);
   };
 
-  // Persist registered admin accounts
-  useEffect(() => {
-    try {
-      localStorage.setItem("greenbasket_admin_users", JSON.stringify(registeredUsers));
-    } catch (e) {
-      console.warn("Storage quota exceeded", e);
-    }
-  }, [registeredUsers]);
-
-  // Handle Sign In
+  // Auth Handlers
   function handleLogin(e) {
     e.preventDefault();
     setLoginError("");
@@ -477,6 +526,7 @@ function App() {
         setCurrentUser(userObj);
         localStorage.setItem("greenbasket_auth", JSON.stringify(userObj));
         setLoginError("");
+        triggerToast("Welcome back, " + userObj.name + "!");
       } else {
         setLoginError("Invalid email or password! Please check credentials or sign up.");
       }
@@ -484,7 +534,6 @@ function App() {
     }, 350);
   }
 
-  // Handle Sign Up (Register New Admin)
   function handleSignUp(e) {
     e.preventDefault();
     setSignupError("");
@@ -494,12 +543,10 @@ function App() {
       setSignupError("Please fill in all required fields.");
       return;
     }
-
     if (signupPassword.length < 6) {
       setSignupError("Password must be at least 6 characters long.");
       return;
     }
-
     if (signupPassword !== signupConfirmPassword) {
       setSignupError("Passwords do not match! Please check again.");
       return;
@@ -537,26 +584,26 @@ function App() {
         setCurrentUser(userSession);
         localStorage.setItem("greenbasket_auth", JSON.stringify(userSession));
         setIsSigningUp(false);
+        triggerToast("Admin account created & signed in!");
       }, 700);
     }, 400);
   }
 
-  // Quick fill demo credentials
   function fillDemoCredentials() {
     setLoginEmail("admin@greenbasket.com");
     setLoginPassword("admin123");
     setLoginError("");
   }
 
-  // Handle Logout
   function handleLogout() {
     if (window.confirm("Are you sure you want to log out of GreenBasket Admin?")) {
       setCurrentUser(null);
       localStorage.removeItem("greenbasket_auth");
+      triggerToast("Logged out successfully");
     }
   }
 
-  // Handle Photo File Upload
+  // Photo Upload
   function handleFileUpload(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
@@ -566,6 +613,7 @@ function App() {
     const reader = new FileReader();
     reader.onload = (event) => {
       setForm((prev) => ({ ...prev, image: event.target.result }));
+      triggerToast("Product photo selected!");
     };
     reader.readAsDataURL(file);
   }
@@ -582,15 +630,7 @@ function App() {
     if (file) handleFileUpload(file);
   }
 
-  const sales = orders.reduce((s, o) => s + o.total, 0);
-  const customersCount = new Set(orders.map((o) => o.customer)).size;
-
-  const filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      p.category.toLowerCase().includes(search.toLowerCase())
-  );
-
+  // Product Catalog Handlers
   function reset() {
     setForm(defaultForm);
     setEditing(null);
@@ -599,7 +639,10 @@ function App() {
 
   function save(e) {
     e.preventDefault();
-    if (!form.name || !form.price) return;
+    if (!form.name || !form.price) {
+      triggerToast("Please provide product name and price");
+      return;
+    }
     const priceNum = parseFloat(form.price);
     const discountNum = form.discount !== "" ? parseFloat(form.discount) : priceNum;
     const stockNum = parseInt(form.stock, 10) || 0;
@@ -609,37 +652,196 @@ function App() {
       id: editing ?? Date.now(),
       price: priceNum,
       discount: discountNum > 0 ? discountNum : priceNum,
+      discountPrice: discountNum > 0 && discountNum < priceNum ? discountNum : null,
       image:
         form.image ||
         "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80",
       stock: stockNum
     };
 
-    setProducts((old) => (editing ? old.map((p) => (p.id === editing ? item : p)) : [item, ...old]));
+    setProducts((old) =>
+      editing ? old.map((p) => (p.id === editing ? item : p)) : [item, ...old]
+    );
+
+    triggerToast(
+      editing
+        ? `Updated "${item.name}" & synced with storefront!`
+        : `Added "${item.name}" to store catalog!`
+    );
+
     reset();
     setShowForm(false);
   }
 
   function edit(p) {
     setForm({
-      ...p,
-      price: String(p.price),
-      discount: String(p.discount),
-      stock: String(p.stock),
+      name: p.name || "",
+      category: p.category || "Vegetables",
+      unit: p.unit || "500g / pack",
+      price: String(p.price || ""),
+      discount: String(p.discount ?? p.discountPrice ?? ""),
+      tag: p.tag || "Fresh Harvest",
+      stock: String(p.stock !== undefined ? p.stock : 20),
       image: p.image || ""
     });
     setEditing(p.id);
     setShowForm(true);
     setTab("products");
-    window.scrollTo({ top: 180, behavior: "smooth" });
+    triggerToast(`Editing: ${p.name}`);
+    window.scrollTo({ top: 120, behavior: "smooth" });
+  }
+
+  function duplicateProduct(p) {
+    const copy = {
+      ...p,
+      id: Date.now(),
+      name: `${p.name} (Copy)`
+    };
+    setProducts((old) => [copy, ...old]);
+    triggerToast(`Cloned "${p.name}"`);
+  }
+
+  function quickUpdateStock(id, delta) {
+    setProducts((old) =>
+      old.map((p) => {
+        if (p.id === id) {
+          const nextStock = Math.max(0, (Number(p.stock) || 0) + delta);
+          return { ...p, stock: nextStock };
+        }
+        return p;
+      })
+    );
+    triggerToast("Stock updated");
+  }
+
+  function quickSetDiscount(id, pct) {
+    setProducts((old) =>
+      old.map((p) => {
+        if (p.id === id) {
+          const pPrice = Number(p.price) || 0;
+          const newDisc =
+            pct === 0 ? pPrice : parseFloat((pPrice * (1 - pct / 100)).toFixed(2));
+          return {
+            ...p,
+            discount: newDisc,
+            discountPrice: pct === 0 ? null : newDisc
+          };
+        }
+        return p;
+      })
+    );
+    triggerToast(pct === 0 ? "Discount cleared" : `Applied ${pct}% discount`);
   }
 
   function removeProduct(id) {
-    if (window.confirm("Are you sure you want to delete this product?")) {
+    const target = products.find((x) => x.id === id);
+    if (window.confirm(`Are you sure you want to delete "${target ? target.name : 'this item'}"?`)) {
       setProducts((old) => old.filter((x) => x.id !== id));
       if (editing === id) reset();
+      triggerToast("Product removed from catalog");
     }
   }
+
+  // Order Handlers
+  function updateOrderStatus(orderId, newStatus) {
+    setOrders((old) =>
+      old.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    triggerToast(`Order #${orderId} marked as ${newStatus}`);
+  }
+
+  function deleteOrder(orderId) {
+    if (window.confirm(`Delete order #${orderId} permanently?`)) {
+      setOrders((old) => old.filter((o) => o.id !== orderId));
+      triggerToast(`Order #${orderId} deleted`);
+    }
+  }
+
+  // Catalog Export / Import / Reset
+  function exportCatalogJSON() {
+    const data = {
+      store: "GreenBasket",
+      exportedAt: new Date().toISOString(),
+      products,
+      orders,
+      storeSettings
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `greenbasket-catalog-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    triggerToast("Catalog backup downloaded!");
+  }
+
+  function importCatalogJSON(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (Array.isArray(data.products)) {
+          setProducts(data.products);
+          if (Array.isArray(data.orders)) setOrders(data.orders);
+          if (data.storeSettings) setStoreSettings(data.storeSettings);
+          triggerToast("Catalog restored from backup!");
+        } else {
+          alert("Invalid backup file format!");
+        }
+      } catch (err) {
+        alert("Failed to parse JSON file!");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function resetToDefaultCatalog() {
+    if (
+      window.confirm(
+        "Reset catalog back to initial 12 demo products? This will replace your current items."
+      )
+    ) {
+      setProducts(initialProducts);
+      setOrders(initialOrders);
+      triggerToast("Catalog restored to initial 12 demo products!");
+    }
+  }
+
+  const sales = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+  const customersCount = new Set(orders.map((o) => o.customer)).size;
+
+  const categories = [
+    "Vegetables",
+    "Fruits",
+    "Herbs & Greens",
+    "Dairy",
+    "Bakery",
+    "Pantry",
+    "Beverages"
+  ];
+  const allCategoryTabs = ["All", ...categories];
+
+  const filtered = products.filter((p) => {
+    const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
+    const q = search.toLowerCase();
+    const matchesSearch =
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.tag && p.tag.toLowerCase().includes(q));
+    return matchesCat && matchesSearch;
+  });
+
+  const filteredOrders = orders.filter((o) => {
+    if (orderStatusFilter === "All") return true;
+    return o.status === orderStatusFilter;
+  });
+
+  const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
 
   const stats = [
     ["Products", products.length, Package],
@@ -648,10 +850,6 @@ function App() {
     ["Customers", customersCount, Users]
   ];
 
-  const categories = ["Vegetables", "Fruits", "Dairy", "Bakery", "Pantry", "Beverages"];
-  const lowStock = products.filter((p) => p.stock < 20);
-
-  // Get Admin initials for avatar
   const getInitials = (name) => {
     if (!name) return "GB";
     const parts = name.trim().split(" ");
@@ -663,7 +861,14 @@ function App() {
   // If Headless Bridge Mode, Render Silent Sync Worker
   // -------------------------------------------------------------
   if (isBridgeMode) {
-    return <HeadlessBridge products={products} orders={orders} setOrders={setOrders} />;
+    return (
+      <HeadlessBridge
+        products={products}
+        orders={orders}
+        setOrders={setOrders}
+        storeSettings={storeSettings}
+      />
+    );
   }
 
   // -------------------------------------------------------------
@@ -683,7 +888,6 @@ function App() {
             </div>
           </div>
 
-          {/* Auth Mode Switcher (Sign In vs Sign Up Tabs) */}
           <div className="auth-tab-switch">
             <button
               type="button"
@@ -711,7 +915,6 @@ function App() {
             </button>
           </div>
 
-          {/* ================= SIGN IN TAB ================= */}
           {authMode === "signin" && (
             <>
               <div className="login-header">
@@ -768,7 +971,6 @@ function App() {
                 </button>
               </form>
 
-              {/* Demo Credentials Box */}
               <div className="demo-credentials-box">
                 <div className="demo-head">
                   <ShieldCheck size={16} />
@@ -798,7 +1000,6 @@ function App() {
             </>
           )}
 
-          {/* ================= SIGN UP TAB ================= */}
           {authMode === "signup" && (
             <>
               <div className="login-header">
@@ -814,7 +1015,7 @@ function App() {
               )}
 
               {signupSuccess && (
-                <div className="login-success">
+                <div className="login-alert success">
                   <CheckCircle2 size={18} />
                   <span>{signupSuccess}</span>
                 </div>
@@ -828,7 +1029,7 @@ function App() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Sazib Ahmed"
+                      placeholder="Sazib Ahmed"
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
                     />
@@ -836,13 +1037,13 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Admin Email *</span>
+                  <span>Email Address *</span>
                   <div className="input-with-icon">
                     <Mail size={17} />
                     <input
                       type="email"
                       required
-                      placeholder="e.g. sazib@greenbasket.com"
+                      placeholder="manager@greenbasket.com"
                       value={signupEmail}
                       onChange={(e) => setSignupEmail(e.target.value)}
                     />
@@ -850,24 +1051,24 @@ function App() {
                 </label>
 
                 <label>
-                  <span>Admin Role</span>
+                  <span>Role / Title</span>
                   <div className="input-with-icon">
                     <Briefcase size={17} />
                     <select
                       value={signupRole}
                       onChange={(e) => setSignupRole(e.target.value)}
-                      className="auth-select"
+                      className="role-select"
                     >
-                      <option value="Super Administrator">Super Administrator</option>
                       <option value="Store Manager">Store Manager</option>
-                      <option value="Inventory Admin">Inventory Admin</option>
-                      <option value="Order Supervisor">Order Supervisor</option>
+                      <option value="Catalog Manager">Catalog Manager</option>
+                      <option value="Inventory Specialist">Inventory Specialist</option>
+                      <option value="Customer Lead">Customer Lead</option>
                     </select>
                   </div>
                 </label>
 
                 <label>
-                  <span>Password * (Min. 6 chars)</span>
+                  <span>Password * (min. 6 characters)</span>
                   <div className="input-with-icon">
                     <Lock size={17} />
                     <input
@@ -934,6 +1135,14 @@ function App() {
   // -------------------------------------------------------------
   return (
     <div className="app">
+      {/* Toast Alert */}
+      {toastMessage && (
+        <div className="admin-toast">
+          <CheckCircle2 size={16} color="#7fe054" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand">
@@ -974,6 +1183,15 @@ function App() {
           >
             <ChartNoAxesCombined /> Analytics
           </button>
+          <button
+            className={tab === "settings" ? "active" : ""}
+            onClick={() => {
+              setTab("settings");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Settings /> Store Controls
+          </button>
         </nav>
 
         <div className="side-bottom">
@@ -1006,14 +1224,14 @@ function App() {
           </div>
 
           <div className="topbar-right">
-            <span className="status control-status" title="Bidirectional live sync with customer storefront">
+            <span className="status control-status" title="Live sync with customer storefront">
               <i /> {syncStatus}
             </span>
             <button
               type="button"
               className="sync-store-btn"
               onClick={handleForceSync}
-              title="Force sync catalog and prices to customer storefront"
+              title="Force sync data with customer storefront"
             >
               <RefreshCw size={13} className={isSyncing ? "spin-icon" : ""} /> Sync Store
             </button>
@@ -1022,7 +1240,7 @@ function App() {
               target="_blank"
               rel="noopener noreferrer"
               className="live-store-link"
-              title="Open the live customer storefront in a new tab"
+              title="Open customer storefront in new tab"
             >
               <ExternalLink size={13} /> View Storefront
             </a>
@@ -1070,7 +1288,13 @@ function App() {
               className={tab === "analytics" ? "selected" : ""}
               onClick={() => setTab("analytics")}
             >
-              Analytics Overview
+              Analytics
+            </button>
+            <button
+              className={tab === "settings" ? "selected" : ""}
+              onClick={() => setTab("settings")}
+            >
+              Store Controls & Settings
             </button>
           </div>
 
@@ -1078,23 +1302,23 @@ function App() {
             {tab === "products" && (
               <>
                 <div className="search">
-                  <Search />
+                  <Search size={16} />
                   <input
-                    placeholder="Search products..."
+                    placeholder="Search products by name or tag..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                   {search && (
                     <button
                       type="button"
-                      className="icon-btn"
                       onClick={() => setSearch("")}
-                      title="Clear search"
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#888" }}
                     >
                       <X size={14} />
                     </button>
                   )}
                 </div>
+
                 <button
                   className="primary"
                   onClick={() => {
@@ -1109,7 +1333,7 @@ function App() {
           </div>
         </div>
 
-        {/* Tab 1: Products */}
+        {/* TAB 1: PRODUCT CATALOG & LIVE PRICING */}
         {tab === "products" && (
           <>
             <div className="section-head">
@@ -1117,18 +1341,64 @@ function App() {
                 <h2>Manage store items, photos and live pricing</h2>
                 <p>Upload product photos, update regular & discount prices, and manage stock</p>
               </div>
-              <button className="soft" onClick={() => setShowForm(!showForm)}>
-                {showForm ? <X size={16} /> : <Plus size={16} />}
-                {showForm ? "Close Form" : "Open Form"}
-              </button>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  className="soft"
+                  onClick={exportCatalogJSON}
+                  title="Download JSON backup"
+                >
+                  <Download size={15} /> Backup Catalog
+                </button>
+                <button
+                  className="soft"
+                  onClick={resetToDefaultCatalog}
+                  title="Reset to 12 default items"
+                >
+                  <RotateCcw size={15} /> Reset Default
+                </button>
+                <button className="soft" onClick={() => setShowForm(!showForm)}>
+                  {showForm ? <X size={16} /> : <Plus size={16} />}
+                  {showForm ? "Close Form" : "Open Form"}
+                </button>
+              </div>
             </div>
 
+            {/* Category Filter Pills */}
+            <div className="category-filter-pills">
+              {allCategoryTabs.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  className={`pill-btn ${selectedCategory === cat ? "active" : ""}`}
+                  onClick={() => setSelectedCategory(cat)}
+                >
+                  {cat} {cat === "All" ? `(${products.length})` : `(${products.filter((p) => p.category === cat).length})`}
+                </button>
+              ))}
+            </div>
+
+            {/* Product Edit / Add Form */}
             {showForm && (
               <form className="product-form" onSubmit={save}>
+                {editing && (
+                  <div className="editing-banner">
+                    <span>
+                      Currently Editing: <b>{form.name}</b> (ID #{editing})
+                    </span>
+                    <button type="button" onClick={reset}>
+                      Cancel Editing
+                    </button>
+                  </div>
+                )}
+
                 <div className="form-title">
                   <div>
-                    <span className="eyebrow">{editing ? "EDIT PRODUCT" : "NEW PRODUCT"}</span>
-                    <h3>{editing ? "Update product details & photo" : "Add a product to your catalog"}</h3>
+                    <span className="eyebrow">{editing ? "EDIT STORE ITEM" : "NEW PRODUCT"}</span>
+                    <h3>
+                      {editing
+                        ? "Update product details, photo & live pricing"
+                        : "Add a new product to your catalog"}
+                    </h3>
                   </div>
                   <button
                     type="button"
@@ -1217,6 +1487,15 @@ function App() {
                           {n}% OFF
                         </button>
                       ))}
+                      {form.discount && (
+                        <button
+                          type="button"
+                          style={{ background: "#fcedeb", color: "#a83232" }}
+                          onClick={() => setForm({ ...form, discount: "" })}
+                        >
+                          Clear
+                        </button>
+                      )}
                     </div>
                   </label>
 
@@ -1235,14 +1514,14 @@ function App() {
                     <input
                       value={form.tag}
                       onChange={(e) => setForm({ ...form, tag: e.target.value })}
-                      placeholder="Fresh Harvest"
+                      placeholder="Fresh Harvest, Organic, Best Seller"
                     />
                   </label>
 
                   {/* Photo Upload Section */}
                   <div className="field-full-row">
                     <span className="field-title">
-                      <ImageIcon size={15} /> Product Photo (File Upload or Image URL)
+                      <ImageIcon size={15} /> Product Photo (File Upload, Presets, or Image URL)
                     </span>
 
                     <div className="photo-upload-wrapper">
@@ -1296,7 +1575,7 @@ function App() {
                         )}
 
                         <div className="url-input-wrap">
-                          <small>Or paste an image web link:</small>
+                          <small>Or paste direct photo web URL:</small>
                           <input
                             type="url"
                             placeholder="https://images.unsplash.com/..."
@@ -1311,42 +1590,52 @@ function App() {
 
                 <div className="form-footer">
                   <button type="button" className="soft" onClick={reset}>
-                    Reset
+                    Reset Form
                   </button>
                   <button className="primary" type="submit">
-                    <Plus size={16} />
-                    {editing ? "Save Changes" : "Add Product"}
+                    <Check size={16} />
+                    {editing ? "Update Product & Sync Storefront" : "Save New Product"}
                   </button>
                 </div>
               </form>
             )}
 
+            {/* Product Grid */}
             <div className="catalog-head">
               <h3>
                 All Products <span>{filtered.length} items</span>
               </h3>
-              <span className="muted">Inventory overview</span>
+              <span className="muted">Live Inventory Control</span>
             </div>
 
             {filtered.length === 0 ? (
               <div style={{ textAlign: "center", padding: "40px", color: "#667" }}>
                 <p>No products found matching "{search}".</p>
-                <button className="soft" onClick={() => setSearch("")} style={{ marginTop: "8px" }}>
-                  Clear Search
+                <button
+                  className="soft"
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedCategory("All");
+                  }}
+                  style={{ marginTop: "8px" }}
+                >
+                  Reset Filter & Search
                 </button>
               </div>
             ) : (
               <div className="product-grid">
                 {filtered.map((p) => {
-                  const hasDiscount = p.discount < p.price;
+                  const pPrice = Number(p.price) || 0;
+                  const pDisc = Number(p.discount ?? p.discountPrice ?? pPrice);
+                  const hasDiscount = pDisc > 0 && pDisc < pPrice;
                   const discountPct = hasDiscount
-                    ? Math.round((1 - p.discount / p.price) * 100)
+                    ? Math.round((1 - pDisc / pPrice) * 100)
                     : 0;
 
                   return (
                     <article className="product-card" key={p.id}>
                       <div className="product-visual">
-                        <span className="tag">{p.tag}</span>
+                        <span className="tag">{p.tag || "Fresh"}</span>
                         {p.image ? (
                           <img
                             src={p.image}
@@ -1366,10 +1655,16 @@ function App() {
                           <ImageIcon size={32} />
                         </div>
                         <div className="card-actions">
-                          <button onClick={() => edit(p)} title="Edit">
+                          <button onClick={() => edit(p)} title="Edit product details">
                             <Pencil size={15} />
                           </button>
-                          <button onClick={() => removeProduct(p.id)} title="Delete">
+                          <button
+                            onClick={() => duplicateProduct(p)}
+                            title="Duplicate product"
+                          >
+                            <Copy size={15} />
+                          </button>
+                          <button onClick={() => removeProduct(p.id)} title="Delete product">
                             <Trash2 size={15} />
                           </button>
                         </div>
@@ -1380,26 +1675,115 @@ function App() {
                           {p.category} · {p.unit}
                         </small>
                         <h4>{p.name}</h4>
+                        
                         <div className="price">
-                          <b>${(hasDiscount ? p.discount : p.price).toFixed(2)}</b>
+                          <b>${(hasDiscount ? pDisc : pPrice).toFixed(2)}</b>
                           {hasDiscount && (
                             <>
-                              <del>${p.price.toFixed(2)}</del>
+                              <del>${pPrice.toFixed(2)}</del>
                               <span>{discountPct}% off</span>
                             </>
                           )}
                         </div>
-                        <div className="stock">
-                          <span>Stock</span>
-                          <b>{p.stock} units</b>
+
+                        {/* Quick Discount Buttons */}
+                        <div style={{ display: "flex", gap: "4px", margin: "6px 0" }}>
+                          {[10, 20, 30].map((disc) => (
+                            <button
+                              key={disc}
+                              type="button"
+                              onClick={() => quickSetDiscount(p.id, disc)}
+                              style={{
+                                border: "1px solid #d5e5cf",
+                                background: "#f8fbf5",
+                                color: "#366620",
+                                fontSize: "10px",
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                cursor: "pointer"
+                              }}
+                              title={`Apply ${disc}% discount`}
+                            >
+                              {disc}%
+                            </button>
+                          ))}
+                          {hasDiscount && (
+                            <button
+                              type="button"
+                              onClick={() => quickSetDiscount(p.id, 0)}
+                              style={{
+                                border: "1px solid #f2dede",
+                                background: "#fff5f5",
+                                color: "#b94a3a",
+                                fontSize: "10px",
+                                fontWeight: 700,
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                cursor: "pointer"
+                              }}
+                              title="Clear discount"
+                            >
+                              Reset
+                            </button>
+                          )}
                         </div>
-                        <div className="stock-bar">
-                          <i
-                            style={{
-                              width: `${(Math.min(p.stock, 60) / 60) * 100}%`,
-                              background: p.stock < 20 ? "#e06c53" : "#88bb5e"
-                            }}
-                          />
+
+                        {/* Quick Stock Adjuster */}
+                        <div className="stock-adjuster">
+                          <span>Stock: {p.stock} units</span>
+                          <button
+                            type="button"
+                            className="stock-btn"
+                            onClick={() => quickUpdateStock(p.id, -1)}
+                            title="Decrease stock by 1"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            className="stock-btn"
+                            onClick={() => quickUpdateStock(p.id, 1)}
+                            title="Increase stock by 1"
+                          >
+                            +
+                          </button>
+                          <button
+                            type="button"
+                            className="stock-btn-plus5"
+                            onClick={() => quickUpdateStock(p.id, 5)}
+                            title="Add 5 units"
+                          >
+                            +5
+                          </button>
+                        </div>
+
+                        {/* Card Footer Actions */}
+                        <div className="product-card-footer">
+                          <button
+                            type="button"
+                            className="btn-card-action primary-edit"
+                            onClick={() => edit(p)}
+                          >
+                            <Pencil size={12} /> Edit Details
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-card-action"
+                            onClick={() => duplicateProduct(p)}
+                            title="Clone product"
+                          >
+                            <Copy size={12} /> Clone
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-card-action"
+                            style={{ color: "#b93232" }}
+                            onClick={() => removeProduct(p.id)}
+                            title="Delete item"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
                     </article>
@@ -1410,14 +1794,27 @@ function App() {
           </>
         )}
 
-        {/* Tab 2: Orders */}
+        {/* TAB 2: CUSTOMER ORDERS & STATUS CONTROL */}
         {tab === "orders" && (
           <div className="orders">
             <div className="catalog-head">
               <h3>
-                Customer Orders <span>{orders.length} orders</span>
+                Customer Orders <span>{orders.length} total</span>
               </h3>
+              <div style={{ display: "flex", gap: "6px" }}>
+                {["All", "Processing", "Shipped", "Delivered", "Cancelled"].map((st) => (
+                  <button
+                    key={st}
+                    type="button"
+                    className={`pill-btn ${orderStatusFilter === st ? "active" : ""}`}
+                    onClick={() => setOrderStatusFilter(st)}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
             </div>
+
             <div className="table-wrap">
               <table>
                 <thead>
@@ -1427,51 +1824,79 @@ function App() {
                     <th>Items</th>
                     <th>Date</th>
                     <th>Total</th>
-                    <th>Status</th>
+                    <th>Status Control</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((o) => (
-                    <tr key={o.id}>
-                      <td>
-                        <b>{o.id}</b>
-                      </td>
-                      <td>{o.customer}</td>
-                      <td>{o.items}</td>
-                      <td>{o.date}</td>
-                      <td>
-                        <b>${o.total.toFixed(2)}</b>
-                      </td>
-                      <td>
-                        <span
-                          className="order-status"
-                          style={{
-                            background:
-                              o.status === "Delivered"
-                                ? "#e6f8ea"
-                                : o.status === "Shipped"
-                                ? "#e3f0fc"
-                                : "#fff3d8",
-                            color:
-                              o.status === "Delivered"
-                                ? "#2d7a42"
-                                : o.status === "Shipped"
-                                ? "#24619d"
-                                : "#9a7526"
-                          }}
-                        >
-                          {o.status}
-                        </span>
+                  {filteredOrders.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} style={{ textAlign: "center", padding: "24px", color: "#667" }}>
+                        No orders found with status "{orderStatusFilter}".
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredOrders.map((o) => (
+                      <tr key={o.id}>
+                        <td>
+                          <b>{o.id}</b>
+                        </td>
+                        <td>{o.customer}</td>
+                        <td style={{ maxWidth: "240px", fontSize: "12px" }}>{o.items}</td>
+                        <td>{o.date}</td>
+                        <td>
+                          <b>${Number(o.total || 0).toFixed(2)}</b>
+                        </td>
+                        <td>
+                          <select
+                            className="status-dropdown"
+                            value={o.status}
+                            onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+                            style={{
+                              background:
+                                o.status === "Delivered"
+                                  ? "#e6f8ea"
+                                  : o.status === "Shipped"
+                                  ? "#e3f0fc"
+                                  : o.status === "Cancelled"
+                                  ? "#fdeeee"
+                                  : "#fff3d8",
+                              color:
+                                o.status === "Delivered"
+                                  ? "#2d7a42"
+                                  : o.status === "Shipped"
+                                  ? "#24619d"
+                                  : o.status === "Cancelled"
+                                  ? "#a83232"
+                                  : "#9a7526"
+                            }}
+                          >
+                            <option value="Processing">Processing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="delete-order-btn"
+                            onClick={() => deleteOrder(o.id)}
+                            title="Delete order"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
-        {/* Tab 3: Analytics */}
+        {/* TAB 3: STORE ANALYTICS */}
         {tab === "analytics" && (
           <div className="orders" style={{ padding: "24px" }}>
             <div className="catalog-head" style={{ marginTop: 0 }}>
@@ -1608,9 +2033,169 @@ function App() {
                   <div>
                     Shipped: <b>{orders.filter((o) => o.status === "Shipped").length}</b>
                   </div>
+                  <div>
+                    Cancelled: <b>{orders.filter((o) => o.status === "Cancelled").length}</b>
+                  </div>
                   <div style={{ marginTop: "10px", borderTop: "1px solid #e1ebf5", paddingTop: "8px" }}>
                     Avg. Order Value: <b>${(sales / (orders.length || 1)).toFixed(2)}</b>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: STORE CONTROLS & SETTINGS */}
+        {tab === "settings" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            <div className="catalog-head" style={{ marginTop: 0 }}>
+              <h3>Store Controls & Live Settings</h3>
+            </div>
+            <p style={{ color: "#667", fontSize: "13px", margin: "4px 0 16px" }}>
+              Configure live store announcements, active promo codes, contact info, and catalog backup.
+            </p>
+
+            <div className="settings-section">
+              {/* Card 1: Announcement Bar */}
+              <div className="settings-card">
+                <h3>
+                  <Sliders size={18} color="#2d551c" /> Live Announcement Bar
+                </h3>
+                <p>Text shown at the top of the customer storefront banner</p>
+                <label>
+                  Announcement Message:
+                  <textarea
+                    rows={3}
+                    value={storeSettings.announcement}
+                    onChange={(e) =>
+                      setStoreSettings({ ...storeSettings, announcement: e.target.value })
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="settings-save-btn"
+                  onClick={() => triggerToast("Announcement updated & synced live!")}
+                >
+                  <Check size={14} /> Save Announcement
+                </button>
+              </div>
+
+              {/* Card 2: Promo Code */}
+              <div className="settings-card">
+                <h3>
+                  <TagIcon size={18} color="#2d551c" /> Store Promo Code
+                </h3>
+                <p>Active coupon code for customer cart checkout</p>
+                <label>
+                  Promo Coupon Code:
+                  <input
+                    type="text"
+                    value={storeSettings.promoCode}
+                    onChange={(e) =>
+                      setStoreSettings({ ...storeSettings, promoCode: e.target.value.toUpperCase() })
+                    }
+                    placeholder="e.g. GREEN20"
+                  />
+                </label>
+                <label>
+                  Discount Percentage (%):
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={storeSettings.promoDiscount}
+                    onChange={(e) =>
+                      setStoreSettings({ ...storeSettings, promoDiscount: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="settings-save-btn"
+                  onClick={() => triggerToast("Promo code updated & synced live!")}
+                >
+                  <Check size={14} /> Save Promo Code
+                </button>
+              </div>
+
+              {/* Card 3: Store Contact */}
+              <div className="settings-card">
+                <h3>
+                  <Mail size={18} color="#2d551c" /> Store Contact Information
+                </h3>
+                <p>Support phone and email shown to customers</p>
+                <label>
+                  Support Phone:
+                  <input
+                    type="text"
+                    value={storeSettings.storePhone}
+                    onChange={(e) =>
+                      setStoreSettings({ ...storeSettings, storePhone: e.target.value })
+                    }
+                  />
+                </label>
+                <label>
+                  Support Email:
+                  <input
+                    type="email"
+                    value={storeSettings.storeEmail}
+                    onChange={(e) =>
+                      setStoreSettings({ ...storeSettings, storeEmail: e.target.value })
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="settings-save-btn"
+                  onClick={() => triggerToast("Contact information saved!")}
+                >
+                  <Check size={14} /> Save Contact Info
+                </button>
+              </div>
+
+              {/* Card 4: Backup & Reset */}
+              <div className="settings-card">
+                <h3>
+                  <Download size={18} color="#2d551c" /> Catalog Backup & Restore
+                </h3>
+                <p>Export your full inventory as JSON or restore from a backup file</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "14px" }}>
+                  <button
+                    type="button"
+                    className="settings-save-btn"
+                    onClick={exportCatalogJSON}
+                  >
+                    <Download size={14} /> Download Full Catalog JSON Backup
+                  </button>
+                  <label style={{ margin: 0 }}>
+                    <span style={{ fontSize: "11px", color: "#667", display: "block", marginBottom: "4px" }}>
+                      Restore Catalog from File:
+                    </span>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={importCatalogJSON}
+                      style={{ padding: "6px" }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={resetToDefaultCatalog}
+                    style={{
+                      background: "#fff5f5",
+                      border: "1px solid #f2dede",
+                      color: "#b94a3a",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      marginTop: "6px"
+                    }}
+                  >
+                    <RotateCcw size={13} /> Reset to Default 12 Demo Products
+                  </button>
                 </div>
               </div>
             </div>

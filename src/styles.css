@@ -1418,3 +1418,288 @@ footer {
     display: none;
   }
 }
+
+/* =========================================================
+   ENHANCED STORE CONTROLS & PRODUCT UPDATE STYLES
+   ========================================================= */
+
+/* Category Filter Pills */
+.category-filter-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 0 16px;
+  margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.category-filter-pills::-webkit-scrollbar {
+  display: none;
+}
+.pill-btn {
+  background: #f1f6ed;
+  color: #3b5a26;
+  border: 1px solid #d4e7c7;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.pill-btn:hover {
+  background: #e3efd9;
+}
+.pill-btn.active {
+  background: #244d16;
+  color: #ffffff;
+  border-color: #244d16;
+  box-shadow: 0 3px 8px rgba(36, 77, 22, 0.25);
+}
+
+/* Editing Banner */
+.editing-banner {
+  background: #fef8e7;
+  border: 1px solid #f6df9a;
+  color: #8c6812;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.editing-banner button {
+  background: transparent;
+  border: 1px solid #d8b760;
+  color: #8c6812;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.editing-banner button:hover {
+  background: #faeed0;
+}
+
+/* Stock Controls on Product Card */
+.stock-adjuster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+  background: #f8faf6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #e1ebdc;
+}
+.stock-adjuster span {
+  font-size: 11px;
+  color: #4f6345;
+  font-weight: 600;
+  flex: 1;
+}
+.stock-btn {
+  background: #fff;
+  border: 1px solid #c9d8c2;
+  color: #2d551c;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.stock-btn:hover {
+  background: #244d16;
+  color: #fff;
+  border-color: #244d16;
+}
+.stock-btn-plus5 {
+  background: #eef7e9;
+  border: 1px solid #c4dfb9;
+  color: #2f611a;
+  padding: 0 6px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.stock-btn-plus5:hover {
+  background: #366c20;
+  color: #fff;
+}
+
+/* Product Card Footer Actions */
+.product-card-footer {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e6efe1;
+}
+.btn-card-action {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #d5e5cf;
+  background: #fff;
+  color: #2e5c1d;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-card-action:hover {
+  background: #f1f7ec;
+  border-color: #b2d2a7;
+}
+.btn-card-action.primary-edit {
+  background: #244d16;
+  color: #fff;
+  border-color: #244d16;
+}
+.btn-card-action.primary-edit:hover {
+  background: #2e621c;
+}
+
+/* Order Status Select */
+.status-dropdown {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid #cddcc7;
+  background: #fff;
+  cursor: pointer;
+  outline: none;
+}
+.delete-order-btn {
+  background: #fceded;
+  color: #c03838;
+  border: 1px solid #f6cfcf;
+  padding: 6px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.delete-order-btn:hover {
+  background: #f9d8d8;
+  color: #9c1f1f;
+}
+
+/* Floating Toast Notification */
+.admin-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1e3814;
+  color: #ffffff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 9999;
+  animation: slideToastIn 0.3s ease-out;
+}
+@keyframes slideToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Store Settings Grid */
+.settings-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+.settings-card {
+  background: #ffffff;
+  border: 1px solid #e1ebd9;
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+.settings-card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: #1a3211;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-card p {
+  margin: 0 0 16px;
+  font-size: 12px;
+  color: #687e61;
+}
+.settings-card label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b572a;
+  margin-bottom: 12px;
+}
+.settings-card input,
+.settings-card textarea {
+  width: 100%;
+  margin-top: 5px;
+  padding: 9px 12px;
+  border: 1px solid #d4e3cb;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.settings-card input:focus,
+.settings-card textarea:focus {
+  outline: none;
+  border-color: #558735;
+}
+.settings-btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.settings-save-btn {
+  background: #244d16;
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.settings-save-btn:hover {
+  background: #2e621c;
+}
