@@ -265,6 +265,13 @@ const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"
 const syncToGist = async (productsData, settingsData) => {
   try {
     const token = GIST_TOKEN_PARTS.join("");
+    const nowIso = new Date().toISOString();
+    const payload = {
+      version: Date.now(),
+      updatedAt: nowIso,
+      products: productsData,
+      settings: settingsData
+    };
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
       headers: {
@@ -274,15 +281,14 @@ const syncToGist = async (productsData, settingsData) => {
       body: JSON.stringify({
         files: {
           "greenbasket_catalog.json": {
-            content: JSON.stringify({
-              updatedAt: new Date().toISOString(),
-              products: productsData,
-              settings: settingsData
-            })
+            content: JSON.stringify(payload, null, 2)
           }
         }
       })
     });
+    try {
+      localStorage.setItem("greenbasket_catalog_updated_at", String(Date.now()));
+    } catch (e) {}
   } catch (err) {
     console.warn("Cloud Gist sync notice:", err);
   }
@@ -466,6 +472,41 @@ function App() {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 2600);
   };
+
+  // Fetch latest cloud catalog on admin initial mount if fresher
+  useEffect(() => {
+    const fetchLatest = async () => {
+      try {
+        const token = GIST_TOKEN_PARTS.join("");
+        const res = await fetch(`https://api.github.com/gists/${GIST_ID}?_t=${Date.now()}`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/vnd.github.v3+json"
+          }
+        });
+        if (!res.ok) return;
+        const d = await res.json();
+        const file = d.files && d.files["greenbasket_catalog.json"];
+        if (file && file.content) {
+          const parsed = JSON.parse(file.content);
+          if (Array.isArray(parsed.products) && parsed.products.length > 0) {
+            const cloudTime = new Date(parsed.updatedAt || d.updated_at).getTime();
+            const localSaved = Number(localStorage.getItem("greenbasket_catalog_updated_at") || 0);
+            if (cloudTime > localSaved) {
+              setProducts(parsed.products);
+              localStorage.setItem("greenbasket_products", JSON.stringify(parsed.products));
+              if (parsed.settings) {
+                setStoreSettings(parsed.settings);
+                localStorage.setItem("greenbasket_settings", JSON.stringify(parsed.settings));
+              }
+              localStorage.setItem("greenbasket_catalog_updated_at", String(cloudTime));
+            }
+          }
+        }
+      } catch (e) {}
+    };
+    fetchLatest();
+  }, []);
 
   // Persist products to localStorage
   useEffect(() => {
