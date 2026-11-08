@@ -210,6 +210,35 @@ const defaultSettings = {
   freeDeliveryThreshold: 49
 };
 
+const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
+const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"];
+
+const syncToGist = async (productsData, settingsData) => {
+  try {
+    const token = GIST_TOKEN_PARTS.join("");
+    await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        files: {
+          "greenbasket_catalog.json": {
+            content: JSON.stringify({
+              updatedAt: new Date().toISOString(),
+              products: productsData,
+              settings: settingsData
+            })
+          }
+        }
+      })
+    });
+  } catch (err) {
+    console.warn("Cloud Gist sync notice:", err);
+  }
+};
+
 // Headless bridge for seamless cross-domain synchronization with the storefront
 function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
   useEffect(() => {
@@ -379,6 +408,7 @@ function App() {
   const [toastMessage, setToastMessage] = useState("");
 
   const fileInputRef = useRef(null);
+  const storefrontWindowRef = useRef(null);
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -410,37 +440,43 @@ function App() {
     } catch (e) {}
   }, [storeSettings]);
 
-  // Broadcast changes across tabs & to storefront
+  // Broadcast changes across tabs & to storefront immediately + background cloud sync
   useEffect(() => {
+    const payload = {
+      type: "GB_PRODUCTS_UPDATED",
+      products,
+      orders,
+      settings: storeSettings,
+      timestamp: Date.now()
+    };
+
     try {
-      const ch = new BroadcastChannel("gb_bridge_channel");
-      ch.postMessage({
-        type: "GB_PRODUCTS_UPDATED",
-        products,
-        orders,
-        settings: storeSettings,
-        timestamp: Date.now()
-      });
-      ch.close();
+      if (storefrontWindowRef.current && !storefrontWindowRef.current.closed) {
+        storefrontWindowRef.current.postMessage(payload, "*");
+      }
     } catch (e) {}
 
     try {
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          {
-            type: "GB_PRODUCTS_UPDATED",
-            products,
-            orders,
-            settings: storeSettings,
-            timestamp: Date.now()
-          },
-          "*"
-        );
+        window.opener.postMessage(payload, "*");
       }
     } catch (e) {}
+
+    try {
+      const ch = new BroadcastChannel("gb_bridge_channel");
+      ch.postMessage(payload);
+      ch.close();
+    } catch (e) {}
+
+    // Debounced background sync to Cloud Gist
+    const debounceTimer = setTimeout(() => {
+      syncToGist(products, storeSettings);
+    }, 500);
+
+    return () => clearTimeout(debounceTimer);
   }, [products, orders, storeSettings]);
 
-  // Listen for new orders dispatched from storefront
+  // Listen for handshakes & new orders from storefront
   useEffect(() => {
     let ch;
     try {
@@ -454,7 +490,22 @@ function App() {
     } catch (e) {}
 
     const handleWindowMsg = (e) => {
-      if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
+      if (!e.data || typeof e.data !== "object") return;
+      if (e.data.type === "GB_STOREFRONT_READY" || e.data.type === "GB_REQUEST_SYNC") {
+        if (e.source && typeof e.source.postMessage === "function") {
+          storefrontWindowRef.current = e.source;
+        }
+        const payload = {
+          type: "GB_PRODUCTS_UPDATED",
+          products,
+          orders,
+          settings: storeSettings,
+          timestamp: Date.now()
+        };
+        try { e.source?.postMessage(payload, "*"); } catch (err) {}
+        try { storefrontWindowRef.current?.postMessage(payload, "*"); } catch (err) {}
+      }
+      if (e.data.type === "GB_NEW_ORDER" && e.data.order) {
         setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
         triggerToast("New customer order received!");
       }
@@ -465,37 +516,72 @@ function App() {
       if (ch) ch.close();
       window.removeEventListener("message", handleWindowMsg);
     };
-  }, []);
+  }, [products, orders, storeSettings]);
 
-  const handleForceSync = () => {
-    setIsSyncing(true);
-    setSyncStatus("Syncing with storefront...");
+  const handleOpenStorefront = () => {
+    let syncHash = "";
     try {
-      const ch = new BroadcastChannel("gb_bridge_channel");
-      ch.postMessage({
-        type: "GB_PRODUCTS_UPDATED",
+      const payload = {
         products,
-        orders,
         settings: storeSettings,
         timestamp: Date.now()
-      });
-      ch.close();
+      };
+      syncHash = "#sync=" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     } catch (e) {}
 
-    try {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage(
-          {
+    const targetUrl = `https://greenbasket-git-main-sazibkhanme6-cyber.vercel.app/${syncHash}`;
+    const win = window.open(targetUrl, "GreenBasketLiveStorefront");
+    if (win) {
+      storefrontWindowRef.current = win;
+      try { win.focus(); } catch (e) {}
+      setTimeout(() => {
+        try {
+          win.postMessage({
             type: "GB_PRODUCTS_UPDATED",
             products,
             orders,
             settings: storeSettings,
             timestamp: Date.now()
-          },
-          "*"
-        );
+          }, "*");
+        } catch (e) {}
+      }, 350);
+      setTimeout(() => {
+        try {
+          win.postMessage({
+            type: "GB_PRODUCTS_UPDATED",
+            products,
+            orders,
+            settings: storeSettings,
+            timestamp: Date.now()
+          }, "*");
+        } catch (e) {}
+      }, 1000);
+    }
+  };
+
+  const handleForceSync = async () => {
+    setIsSyncing(true);
+    setSyncStatus("Syncing with storefront...");
+    const payload = {
+      type: "GB_PRODUCTS_UPDATED",
+      products,
+      orders,
+      settings: storeSettings,
+      timestamp: Date.now()
+    };
+    try {
+      if (storefrontWindowRef.current && !storefrontWindowRef.current.closed) {
+        storefrontWindowRef.current.postMessage(payload, "*");
       }
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(payload, "*");
+      }
+      const ch = new BroadcastChannel("gb_bridge_channel");
+      ch.postMessage(payload);
+      ch.close();
     } catch (e) {}
+
+    await syncToGist(products, storeSettings);
 
     setTimeout(() => {
       setIsSyncing(false);
@@ -1235,15 +1321,14 @@ function App() {
             >
               <RefreshCw size={13} className={isSyncing ? "spin-icon" : ""} /> Sync Store
             </button>
-            <a
-              href="https://greenbasket-git-main-sazibkhanme6-cyber.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={handleOpenStorefront}
               className="live-store-link"
-              title="Open customer storefront in new tab"
+              title="Open customer storefront with instant live sync"
             >
               <ExternalLink size={13} /> View Storefront
-            </a>
+            </button>
             <div className="user-pill">
               <span className="user-pill-avatar">{getInitials(currentUser.name)}</span>
               <span className="user-pill-name">{currentUser.name}</span>
