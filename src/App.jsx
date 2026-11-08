@@ -622,7 +622,7 @@ function App() {
       syncHash = "#sync=" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     } catch (e) {}
 
-    const targetUrl = `https://greenbasket-git-main-sazibkhanme6-cyber.vercel.app/${syncHash}`;
+    const targetUrl = `https://greenbasket-nu.vercel.app/${syncHash}`;
     const win = window.open(targetUrl, "GreenBasketLiveStorefront");
     if (win) {
       storefrontWindowRef.current = win;
