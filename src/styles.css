@@ -1706,3 +1706,425 @@ footer {
 .settings-save-btn:hover {
   background: #2e621c;
 }
+
+/* =========================================================
+   CUSTOMER ORDERS ENHANCEMENTS (DELIVERY ADDRESS & PAYMENT)
+========================================================= */
+.order-head-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.order-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #d5e3cf;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.order-search-box input {
+  border: none;
+  outline: none;
+  font-size: 12px;
+  width: 240px;
+  background: transparent;
+  color: #20351b;
+}
+
+.order-search-box button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.order-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 14px 0 16px;
+  padding: 10px 14px;
+  background: #f7faf4;
+  border-radius: 10px;
+  border: 1px solid #e2ebd9;
+  align-items: center;
+}
+
+.order-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filter-group-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #3f6828;
+  letter-spacing: 0.5px;
+}
+
+.order-id-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1e4d10;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.order-id-link:hover {
+  text-decoration: underline;
+  color: #113107;
+}
+
+.order-date-label {
+  display: block;
+  font-size: 10px;
+  color: #798b71;
+  margin-top: 2px;
+}
+
+.order-customer-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.customer-phone-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #496f30;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.customer-phone-link:hover {
+  text-decoration: underline;
+}
+
+/* Delivery Address Cell */
+.order-address-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 230px;
+}
+
+.order-addr-text {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  color: #243d1a;
+  line-height: 1.4;
+}
+
+.addr-pin-icon {
+  color: #3b7420;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.order-items-snippet {
+  font-size: 12px;
+  color: #4b623d;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-total-price {
+  font-size: 14px;
+  font-weight: 800;
+  color: #255315;
+}
+
+/* Payment Status & Method Cell */
+.order-payment-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.order-payment-method {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #556c49;
+}
+
+.payment-status-select {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  outline: none;
+}
+
+.order-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-order-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eef6e9;
+  border: 1px solid #c9e0be;
+  color: #2b5f16;
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-order-btn:hover {
+  background: #def0d4;
+  color: #1a410c;
+}
+
+/* =========================================================
+   ORDER DETAILS MODAL
+========================================================= */
+.order-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 36, 12, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.order-modal-box {
+  width: 100%;
+  max-width: 620px;
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  animation: scaleUp 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.order-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #172d11;
+  color: #ffffff;
+}
+
+.modal-eyebrow {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  font-weight: 800;
+  color: #9ecc8b;
+  margin-bottom: 2px;
+}
+
+.order-modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.order-modal-date {
+  font-size: 11px;
+  color: #b7d1a9;
+}
+
+.modal-close-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.order-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-detail-card {
+  background: #fbfdfa;
+  border: 1px solid #e2ebd9;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.highlight-card {
+  background: #f4faef;
+  border-color: #c9e3bc;
+}
+
+.detail-card-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #244b14;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-row {
+  display: flex;
+  font-size: 13px;
+  gap: 10px;
+}
+
+.info-label {
+  width: 140px;
+  color: #65775c;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.delivery-addr-row {
+  align-items: flex-start;
+}
+
+.delivery-addr-value p {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #19380f;
+  line-height: 1.4;
+}
+
+.copy-addr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid #bddbb0;
+  color: #2d6217;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.copy-addr-btn:hover {
+  background: #edf7e7;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.status-box label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #556c49;
+  margin-bottom: 5px;
+}
+
+.status-value-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #274b17;
+  background: #edf4e8;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.items-list-box {
+  background: #ffffff;
+  border: 1px solid #e5ece0;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.items-mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.items-mini-table th {
+  text-align: left;
+  padding: 6px 8px;
+  color: #6c7e63;
+  border-bottom: 1px solid #eef3eb;
+  font-size: 11px;
+}
+
+.items-mini-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f2f7ef;
+  color: #283e1f;
+}
+
+.order-modal-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: #f7faf4;
+  border-top: 1px solid #e1ebd9;
+}

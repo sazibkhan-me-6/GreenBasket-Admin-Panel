@@ -36,7 +36,12 @@ import {
   RotateCcw,
   Download,
   Tag as TagIcon,
-  Check
+  Check,
+  MapPin,
+  Phone,
+  CreditCard,
+  Clock,
+  Printer
 } from "lucide-react";
 
 const initialProducts = [
@@ -175,10 +180,54 @@ const initialProducts = [
 ];
 
 const initialOrders = [
-  { id: "GB-1001", customer: "Sarah Ahmed", items: "Organic Avocados, Farm Milk", total: 24.50, status: "Delivered", date: "Nov 07, 2026" },
-  { id: "GB-1002", customer: "Rafiqul Islam", items: "Red Apples, Fresh Carrots, Bananas", total: 18.20, status: "Processing", date: "Nov 07, 2026" },
-  { id: "GB-1003", customer: "Tanzina Akter", items: "Whole Grain Bread, Farm Tomatoes", total: 12.80, status: "Shipped", date: "Nov 06, 2026" },
-  { id: "GB-1004", customer: "Kamal Hossain", items: "Strawberries, Chia Seeds", total: 31.00, status: "Delivered", date: "Nov 05, 2026" }
+  {
+    id: "GB-1001",
+    customer: "Sarah Ahmed",
+    customerPhone: "+880 1712-345678",
+    address: "House 24, Road 7, Dhanmondi, Dhaka",
+    items: "Organic Avocados (2), Farm Milk (1)",
+    total: 24.50,
+    paymentMethod: "bKash",
+    paymentStatus: "Paid",
+    status: "Delivered",
+    date: "Nov 07, 2026 14:30"
+  },
+  {
+    id: "GB-1002",
+    customer: "Rafiqul Islam",
+    customerPhone: "+880 1819-876543",
+    address: "Flat 4B, Green Tower, Gulshan-2, Dhaka",
+    items: "Red Apples (1kg), Fresh Carrots (500g), Bananas (1 bunch)",
+    total: 18.20,
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: "Pending",
+    status: "Processing",
+    date: "Nov 07, 2026 16:15"
+  },
+  {
+    id: "GB-1003",
+    customer: "Tanzina Akter",
+    customerPhone: "+880 1911-234890",
+    address: "Plot 15, Sector 4, Uttara, Dhaka",
+    items: "Whole Grain Bread (1), Farm Tomatoes (1kg)",
+    total: 12.80,
+    paymentMethod: "Credit Card",
+    paymentStatus: "Paid",
+    status: "Shipped",
+    date: "Nov 06, 2026 11:20"
+  },
+  {
+    id: "GB-1004",
+    customer: "Kamal Hossain",
+    customerPhone: "+880 1610-998877",
+    address: "Apt 2A, Rose Garden, Mirpur 10, Dhaka",
+    items: "Strawberries (250g), Chia Seeds (200g)",
+    total: 31.00,
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: "Paid",
+    status: "Delivered",
+    date: "Nov 05, 2026 18:45"
+  }
 ];
 
 const defaultForm = {
@@ -397,6 +446,9 @@ function App() {
   const [tab, setTab] = useState("products");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [orderStatusFilter, setOrderStatusFilter] = useState("All");
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState("All");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
@@ -833,7 +885,20 @@ function App() {
     setOrders((old) =>
       old.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
     );
+    if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+      setSelectedOrderForModal((prev) => ({ ...prev, status: newStatus }));
+    }
     triggerToast(`Order #${orderId} marked as ${newStatus}`);
+  }
+
+  function updateOrderPaymentStatus(orderId, newPaymentStatus) {
+    setOrders((old) =>
+      old.map((o) => (o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o))
+    );
+    if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+      setSelectedOrderForModal((prev) => ({ ...prev, paymentStatus: newPaymentStatus }));
+    }
+    triggerToast(`Order #${orderId} payment set to ${newPaymentStatus}`);
   }
 
   function deleteOrder(orderId) {
@@ -923,8 +988,23 @@ function App() {
   });
 
   const filteredOrders = orders.filter((o) => {
-    if (orderStatusFilter === "All") return true;
-    return o.status === orderStatusFilter;
+    const matchesStatus = orderStatusFilter === "All" || o.status === orderStatusFilter;
+    const oPayment =
+      o.paymentStatus ||
+      (o.paymentMethod === "Cash on Delivery" && o.status !== "Delivered" ? "Pending" : "Paid");
+    const matchesPayment = orderPaymentFilter === "All" || oPayment === orderPaymentFilter;
+    const q = orderSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      (o.id && o.id.toLowerCase().includes(q)) ||
+      (o.customer && o.customer.toLowerCase().includes(q)) ||
+      (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+      (o.address && o.address.toLowerCase().includes(q)) ||
+      (o.deliveryAddress && o.deliveryAddress.toLowerCase().includes(q)) ||
+      (o.customerPhone && o.customerPhone.toLowerCase().includes(q)) ||
+      (o.paymentMethod && o.paymentMethod.toLowerCase().includes(q)) ||
+      (o.items && (typeof o.items === "string" ? o.items : JSON.stringify(o.items)).toLowerCase().includes(q));
+    return matchesStatus && matchesPayment && matchesSearch;
   });
 
   const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
@@ -1883,10 +1963,34 @@ function App() {
         {tab === "orders" && (
           <div className="orders">
             <div className="catalog-head">
-              <h3>
-                Customer Orders <span>{orders.length} total</span>
-              </h3>
-              <div style={{ display: "flex", gap: "6px" }}>
+              <div>
+                <h3>
+                  Customer Orders <span>{orders.length} total</span>
+                </h3>
+                <span className="muted">Live Order Tracking, Delivery Address & Payment Management</span>
+              </div>
+              <div className="order-head-tools">
+                <div className="order-search-box">
+                  <Search size={14} />
+                  <input
+                    type="text"
+                    placeholder="Search by ID, customer, address, phone..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                  />
+                  {orderSearch && (
+                    <button type="button" onClick={() => setOrderSearch("")} title="Clear search">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Pills Row */}
+            <div className="order-filters-bar">
+              <div className="order-filter-group">
+                <span className="filter-group-label">Delivery:</span>
                 {["All", "Processing", "Shipped", "Delivered", "Cancelled"].map((st) => (
                   <button
                     key={st}
@@ -1898,6 +2002,20 @@ function App() {
                   </button>
                 ))}
               </div>
+
+              <div className="order-filter-group">
+                <span className="filter-group-label">Payment:</span>
+                {["All", "Paid", "Pending", "Cash on Delivery"].map((pst) => (
+                  <button
+                    key={pst}
+                    type="button"
+                    className={`pill-btn ${orderPaymentFilter === pst ? "active" : ""}`}
+                    onClick={() => setOrderPaymentFilter(pst)}
+                  >
+                    {pst}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="table-wrap">
@@ -1905,75 +2023,169 @@ function App() {
                 <thead>
                   <tr>
                     <th>Order ID</th>
-                    <th>Customer</th>
+                    <th>Customer & Phone</th>
+                    <th>Delivery Address</th>
                     <th>Items</th>
-                    <th>Date</th>
                     <th>Total</th>
-                    <th>Status Control</th>
+                    <th>Payment Status</th>
+                    <th>Delivery Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={7} style={{ textAlign: "center", padding: "24px", color: "#667" }}>
-                        No orders found with status "{orderStatusFilter}".
+                      <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "#667" }}>
+                        No orders match the selected filters.
                       </td>
                     </tr>
                   ) : (
-                    filteredOrders.map((o) => (
-                      <tr key={o.id}>
-                        <td>
-                          <b>{o.id}</b>
-                        </td>
-                        <td>{o.customer}</td>
-                        <td style={{ maxWidth: "240px", fontSize: "12px" }}>{o.items}</td>
-                        <td>{o.date}</td>
-                        <td>
-                          <b>${Number(o.total || 0).toFixed(2)}</b>
-                        </td>
-                        <td>
-                          <select
-                            className="status-dropdown"
-                            value={o.status}
-                            onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                            style={{
-                              background:
-                                o.status === "Delivered"
-                                  ? "#e6f8ea"
-                                  : o.status === "Shipped"
-                                  ? "#e3f0fc"
-                                  : o.status === "Cancelled"
-                                  ? "#fdeeee"
-                                  : "#fff3d8",
-                              color:
-                                o.status === "Delivered"
-                                  ? "#2d7a42"
-                                  : o.status === "Shipped"
-                                  ? "#24619d"
-                                  : o.status === "Cancelled"
-                                  ? "#a83232"
-                                  : "#9a7526"
-                            }}
-                          >
-                            <option value="Processing">Processing</option>
-                            <option value="Shipped">Shipped</option>
-                            <option value="Delivered">Delivered</option>
-                            <option value="Cancelled">Cancelled</option>
-                          </select>
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="delete-order-btn"
-                            onClick={() => deleteOrder(o.id)}
-                            title="Delete order"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    filteredOrders.map((o) => {
+                      const pStatus =
+                        o.paymentStatus ||
+                        (o.paymentMethod === "Cash on Delivery" && o.status !== "Delivered"
+                          ? "Pending"
+                          : "Paid");
+                      return (
+                        <tr key={o.id}>
+                          <td>
+                            <button
+                              type="button"
+                              className="order-id-link"
+                              onClick={() => setSelectedOrderForModal(o)}
+                              title="Click to view full order details"
+                            >
+                              <b>{o.id}</b>
+                            </button>
+                            <small className="order-date-label">{o.date}</small>
+                          </td>
+                          <td>
+                            <div className="order-customer-cell">
+                              <b>{o.customer || o.customerName || "Customer"}</b>
+                              {(o.customerPhone || o.phone) && (
+                                <a
+                                  href={`tel:${o.customerPhone || o.phone}`}
+                                  className="customer-phone-link"
+                                >
+                                  <Phone size={11} /> {o.customerPhone || o.phone}
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="order-address-box">
+                              <span className="order-addr-text">
+                                <MapPin size={13} className="addr-pin-icon" />
+                                <span>{o.address || o.deliveryAddress || "Standard Home Delivery"}</span>
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ maxWidth: "200px" }}>
+                            <div
+                              className="order-items-snippet"
+                              title={typeof o.items === "string" ? o.items : JSON.stringify(o.items)}
+                            >
+                              {typeof o.items === "string"
+                                ? o.items
+                                : Array.isArray(o.items)
+                                ? o.items.map((it) => it.name || it).join(", ")
+                                : "Store items"}
+                            </div>
+                          </td>
+                          <td>
+                            <strong className="order-total-price">
+                              ${Number(o.total || 0).toFixed(2)}
+                            </strong>
+                          </td>
+                          <td>
+                            <div className="order-payment-cell">
+                              <span className="order-payment-method">
+                                <CreditCard size={12} /> {o.paymentMethod || "Cash on Delivery"}
+                              </span>
+                              <select
+                                className="payment-status-select"
+                                value={pStatus}
+                                onChange={(e) => updateOrderPaymentStatus(o.id, e.target.value)}
+                                style={{
+                                  background:
+                                    pStatus === "Paid"
+                                      ? "#e6f8ea"
+                                      : pStatus === "Refunded"
+                                      ? "#f3e8ff"
+                                      : pStatus === "Failed"
+                                      ? "#fdeeee"
+                                      : "#fff3d8",
+                                  color:
+                                    pStatus === "Paid"
+                                      ? "#2d7a42"
+                                      : pStatus === "Refunded"
+                                      ? "#6b21a8"
+                                      : pStatus === "Failed"
+                                      ? "#a83232"
+                                      : "#9a7526"
+                                }}
+                              >
+                                <option value="Paid">✓ Paid</option>
+                                <option value="Pending">⏳ Pending</option>
+                                <option value="Cash on Delivery">💵 Cash on Delivery</option>
+                                <option value="Refunded">↩ Refunded</option>
+                                <option value="Failed">✕ Failed</option>
+                              </select>
+                            </div>
+                          </td>
+                          <td>
+                            <select
+                              className="status-dropdown"
+                              value={o.status}
+                              onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+                              style={{
+                                background:
+                                  o.status === "Delivered"
+                                    ? "#e6f8ea"
+                                    : o.status === "Shipped"
+                                    ? "#e3f0fc"
+                                    : o.status === "Cancelled"
+                                    ? "#fdeeee"
+                                    : "#fff3d8",
+                                color:
+                                  o.status === "Delivered"
+                                    ? "#2d7a42"
+                                    : o.status === "Shipped"
+                                    ? "#24619d"
+                                    : o.status === "Cancelled"
+                                    ? "#a83232"
+                                    : "#9a7526"
+                              }}
+                            >
+                              <option value="Processing">Processing</option>
+                              <option value="Shipped">Shipped</option>
+                              <option value="Delivered">Delivered</option>
+                              <option value="Cancelled">Cancelled</option>
+                            </select>
+                          </td>
+                          <td>
+                            <div className="order-actions-cell">
+                              <button
+                                type="button"
+                                className="view-order-btn"
+                                onClick={() => setSelectedOrderForModal(o)}
+                                title="View Complete Order Details & Delivery Address"
+                              >
+                                <Eye size={14} /> Details
+                              </button>
+                              <button
+                                type="button"
+                                className="delete-order-btn"
+                                onClick={() => deleteOrder(o.id)}
+                                title="Delete order"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -2282,6 +2494,221 @@ function App() {
                     <RotateCcw size={13} /> Reset to Default 12 Demo Products
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ORDER DETAILS MODAL */}
+        {selectedOrderForModal && (
+          <div className="order-modal-backdrop" onClick={() => setSelectedOrderForModal(null)}>
+            <div className="order-modal-box" onClick={(e) => e.stopPropagation()}>
+              <div className="order-modal-head">
+                <div className="order-modal-title">
+                  <span className="modal-eyebrow">CUSTOMER ORDER DETAILS</span>
+                  <h3>Order #{selectedOrderForModal.id}</h3>
+                  <small className="order-modal-date">{selectedOrderForModal.date}</small>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setSelectedOrderForModal(null)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="order-modal-body">
+                {/* Delivery Address & Customer Card */}
+                <div className="order-detail-card highlight-card">
+                  <h4 className="detail-card-title">
+                    <MapPin size={16} /> Delivery Address & Contact Info
+                  </h4>
+                  <div className="detail-card-content">
+                    <div className="info-row">
+                      <span className="info-label">Customer Name:</span>
+                      <strong>{selectedOrderForModal.customer || selectedOrderForModal.customerName}</strong>
+                    </div>
+                    <div className="info-row">
+                      <span className="info-label">Phone Number:</span>
+                      <span>
+                        {selectedOrderForModal.customerPhone ? (
+                          <a
+                            href={`tel:${selectedOrderForModal.customerPhone}`}
+                            style={{ color: "#2f5d1d", fontWeight: 700 }}
+                          >
+                            {selectedOrderForModal.customerPhone}
+                          </a>
+                        ) : (
+                          "Not provided"
+                        )}
+                      </span>
+                    </div>
+                    <div className="info-row delivery-addr-row">
+                      <span className="info-label">Delivery Address:</span>
+                      <div className="delivery-addr-value">
+                        <p>{selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || "Standard Home Delivery"}</p>
+                        <button
+                          type="button"
+                          className="copy-addr-btn"
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || ""
+                            );
+                            triggerToast("Delivery address copied to clipboard!");
+                          }}
+                        >
+                          <Copy size={12} /> Copy Address
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment & Delivery Status Card */}
+                <div className="order-detail-card">
+                  <h4 className="detail-card-title">
+                    <CreditCard size={16} /> Payment & Delivery Status
+                  </h4>
+                  <div className="status-grid">
+                    <div className="status-box">
+                      <label>Payment Method:</label>
+                      <div className="status-value-pill">
+                        <CreditCard size={14} /> {selectedOrderForModal.paymentMethod || "Cash on Delivery"}
+                      </div>
+                    </div>
+
+                    <div className="status-box">
+                      <label>Payment Status:</label>
+                      <select
+                        className="payment-status-select"
+                        value={
+                          selectedOrderForModal.paymentStatus ||
+                          (selectedOrderForModal.paymentMethod === "Cash on Delivery" &&
+                          selectedOrderForModal.status !== "Delivered"
+                            ? "Pending"
+                            : "Paid")
+                        }
+                        onChange={(e) => updateOrderPaymentStatus(selectedOrderForModal.id, e.target.value)}
+                        style={{
+                          background:
+                            selectedOrderForModal.paymentStatus === "Paid"
+                              ? "#e6f8ea"
+                              : selectedOrderForModal.paymentStatus === "Refunded"
+                              ? "#f3e8ff"
+                              : selectedOrderForModal.paymentStatus === "Failed"
+                              ? "#fdeeee"
+                              : "#fff3d8",
+                          color:
+                            selectedOrderForModal.paymentStatus === "Paid"
+                              ? "#2d7a42"
+                              : selectedOrderForModal.paymentStatus === "Refunded"
+                              ? "#6b21a8"
+                              : selectedOrderForModal.paymentStatus === "Failed"
+                              ? "#a83232"
+                              : "#9a7526"
+                        }}
+                      >
+                        <option value="Paid">✓ Paid</option>
+                        <option value="Pending">⏳ Pending</option>
+                        <option value="Cash on Delivery">💵 Cash on Delivery</option>
+                        <option value="Refunded">↩ Refunded</option>
+                        <option value="Failed">✕ Failed</option>
+                      </select>
+                    </div>
+
+                    <div className="status-box">
+                      <label>Delivery Status:</label>
+                      <select
+                        className="status-dropdown"
+                        value={selectedOrderForModal.status}
+                        onChange={(e) => updateOrderStatus(selectedOrderForModal.id, e.target.value)}
+                        style={{
+                          background:
+                            selectedOrderForModal.status === "Delivered"
+                              ? "#e6f8ea"
+                              : selectedOrderForModal.status === "Shipped"
+                              ? "#e3f0fc"
+                              : selectedOrderForModal.status === "Cancelled"
+                              ? "#fdeeee"
+                              : "#fff3d8",
+                          color:
+                            selectedOrderForModal.status === "Delivered"
+                              ? "#2d7a42"
+                              : selectedOrderForModal.status === "Shipped"
+                              ? "#24619d"
+                              : selectedOrderForModal.status === "Cancelled"
+                              ? "#a83232"
+                              : "#9a7526"
+                        }}
+                      >
+                        <option value="Processing">Processing</option>
+                        <option value="Shipped">Shipped</option>
+                        <option value="Delivered">Delivered</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <div className="status-box">
+                      <label>Order Total:</label>
+                      <strong style={{ fontSize: "18px", color: "#255315" }}>
+                        ${Number(selectedOrderForModal.total || 0).toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Items Card */}
+                <div className="order-detail-card">
+                  <h4 className="detail-card-title">
+                    <Package size={16} /> Ordered Items List
+                  </h4>
+                  <div className="items-list-box">
+                    {typeof selectedOrderForModal.items === "string" ? (
+                      <p style={{ margin: 0, fontSize: "13px", lineHeight: "1.6" }}>{selectedOrderForModal.items}</p>
+                    ) : Array.isArray(selectedOrderForModal.items) ? (
+                      <table className="items-mini-table">
+                        <thead>
+                          <tr>
+                            <th>Item Name</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedOrderForModal.items.map((it, idx) => (
+                            <tr key={idx}>
+                              <td>{it.name}</td>
+                              <td>{it.qty || 1}</td>
+                              <td>${Number(it.price || 0).toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <p>Store items ordered</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="order-modal-foot">
+                <button
+                  type="button"
+                  className="soft"
+                  onClick={() => window.print()}
+                  title="Print order receipt / packing slip"
+                >
+                  <Printer size={15} /> Print Invoice
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setSelectedOrderForModal(null)}
+                >
+                  Done
+                </button>
               </div>
             </div>
           </div>
