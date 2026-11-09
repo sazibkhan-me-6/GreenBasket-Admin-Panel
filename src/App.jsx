@@ -819,8 +819,11 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings, customers,
           }
 
           const notifyCh = new BroadcastChannel("gb_bridge_channel");
+          notifyCh.postMessage({ type: "GB_NEW_ORDER", order: normalized });
           notifyCh.postMessage({ type: "GB_ORDERS_UPDATED", orders: updated });
+          notifyCh.postMessage({ type: "GB_CUSTOMERS_UPDATED", customers: custList });
           notifyCh.close();
+          syncToGist(products, storeSettings, updated, [], [], custList);
         } catch (err) {
           console.warn("Failed to save new order in bridge", err);
         }
@@ -852,6 +855,11 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings, customers,
             custList = [newC, ...custList];
             localStorage.setItem("greenbasket_customers", JSON.stringify(custList));
             if (setCustomers) setCustomers(custList);
+            const notifyCh = new BroadcastChannel("gb_bridge_channel");
+            notifyCh.postMessage({ type: "GB_NEW_CUSTOMER", customer: newC });
+            notifyCh.postMessage({ type: "GB_CUSTOMERS_UPDATED", customers: custList });
+            notifyCh.close();
+            syncToGist(products, storeSettings, orders, [], [], custList);
           }
         } catch (cErr) {
           console.warn("Failed to save new customer in bridge", cErr);
@@ -1055,7 +1063,26 @@ function App() {
     setTimeout(() => setToastMessage(""), 2600);
   };
 
-  // Fetch latest cloud catalog & orders on initial mount and background cloud polling
+  const playChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {}
+  };
+
+  // Fetch latest cloud catalog, orders & customers on initial mount and background cloud polling
   useEffect(() => {
     const fetchLatest = async () => {
       try {
@@ -1091,11 +1118,22 @@ function App() {
                 const norm = normalizeOrder(o);
                 if (norm) cloudMap.set(norm.id, norm);
               });
+              let newArrival = null;
+              parsed.orders.forEach((o) => {
+                const norm = normalizeOrder(o);
+                if (norm && !prev.some(p => p.id === norm.id)) {
+                  newArrival = norm;
+                }
+              });
               prev.forEach((o) => {
                 if (!cloudMap.has(o.id)) cloudMap.set(o.id, o);
               });
               const merged = Array.from(cloudMap.values());
               localStorage.setItem("greenbasket_orders", JSON.stringify(merged));
+              if (newArrival && prev.length > 0) {
+                if (storeSettings.orderSoundAlert !== false) playChime();
+                triggerToast(`🔔 New Order #${newArrival.id} received from ${newArrival.customer || newArrival.customerName}!`);
+              }
               return merged;
             });
           }
@@ -1108,14 +1146,34 @@ function App() {
             localStorage.setItem("greenbasket_admin_users", JSON.stringify(parsed.adminUsers));
           }
           if (Array.isArray(parsed.customers) && parsed.customers.length > 0) {
-            setCustomers(parsed.customers);
-            localStorage.setItem("greenbasket_customers", JSON.stringify(parsed.customers));
+            setCustomers((prev) => {
+              const custMap = new Map();
+              parsed.customers.forEach((c) => {
+                if (c && c.id) custMap.set(c.id, c);
+              });
+              let newCust = null;
+              parsed.customers.forEach((c) => {
+                if (c && !prev.some(p => p.id === c.id || (c.email && p.email && p.email.toLowerCase() === c.email.toLowerCase()))) {
+                  newCust = c;
+                }
+              });
+              prev.forEach((c) => {
+                if (c && c.id && !custMap.has(c.id)) custMap.set(c.id, c);
+              });
+              const mergedCusts = Array.from(custMap.values());
+              localStorage.setItem("greenbasket_customers", JSON.stringify(mergedCusts));
+              if (newCust && prev.length > 0) {
+                playChime();
+                triggerToast(`👤 New Customer '${newCust.name}' registered & added to Customer Control!`);
+              }
+              return mergedCusts;
+            });
           }
         }
       } catch (e) {}
     };
     fetchLatest();
-    const pollTimer = setInterval(fetchLatest, 3500);
+    const pollTimer = setInterval(fetchLatest, 2000);
     return () => clearInterval(pollTimer);
   }, []);
 
@@ -1214,8 +1272,10 @@ function App() {
     setCustomers((prevCusts) => {
       const cPhone = normalized.customerPhone || normalized.phone || "";
       const cName = normalized.customer || normalized.customerName || "Customer";
+      const cEmail = normalized.customerEmail || normalized.email || "";
       const cIdx = prevCusts.findIndex((c) =>
         (cPhone && c.phone === cPhone) ||
+        (cEmail && c.email && c.email.toLowerCase() === cEmail.toLowerCase()) ||
         (cName && c.name.toLowerCase() === cName.toLowerCase())
       );
 
@@ -1225,17 +1285,18 @@ function App() {
         nextCusts[cIdx] = {
           ...nextCusts[cIdx],
           totalOrders: (Number(nextCusts[cIdx].totalOrders) || 0) + 1,
-          totalSpent: (Number(nextCusts[cIdx].totalSpent) || 0) + Number(normalized.total || 0),
+          totalSpent: Number(((Number(nextCusts[cIdx].totalSpent) || 0) + Number(normalized.total || 0)).toFixed(2)),
           lastOrderDate: normalized.date || "Today",
           address: normalized.deliveryAddress || normalized.address || nextCusts[cIdx].address,
-          phone: cPhone || nextCusts[cIdx].phone
+          phone: cPhone || nextCusts[cIdx].phone,
+          email: cEmail || nextCusts[cIdx].email
         };
       } else {
         const newC = {
           id: "CUST-" + (1000 + prevCusts.length + 1),
           name: cName,
           phone: cPhone,
-          email: "",
+          email: cEmail,
           address: normalized.deliveryAddress || normalized.address || "Standard Home Delivery",
           status: "Active",
           totalOrders: 1,
@@ -1251,7 +1312,10 @@ function App() {
       return nextCusts;
     });
 
-    triggerToast(`New Order #${normalized.id} received from ${normalized.customer}! Total: ${Number(normalized.total || 0).toFixed(2)}`);
+    if (storeSettings.orderSoundAlert !== false) {
+      playChime();
+    }
+    triggerToast(`🔔 New Order #${normalized.id} received from ${normalized.customer}! Total: $${Number(normalized.total || 0).toFixed(2)}`);
   };
 
   const handleIncomingNewCustomer = (incomingCust) => {
@@ -1281,7 +1345,8 @@ function App() {
       }
       return prevCusts;
     });
-    triggerToast(`New customer '${incomingCust.name}' registered & added to Customer Control!`);
+    playChime();
+    triggerToast(`👤 New customer '${incomingCust.name}' registered & added to Customer Control!`);
   };
 
   // Listen for handshakes, new orders & new customer registrations from storefront
@@ -1296,8 +1361,30 @@ function App() {
         if (e.data?.type === "GB_NEW_CUSTOMER" && e.data.customer) {
           handleIncomingNewCustomer(e.data.customer);
         }
+        if (e.data?.type === "GB_ORDERS_UPDATED" && Array.isArray(e.data.orders)) {
+          setOrders(e.data.orders);
+        }
+        if (e.data?.type === "GB_CUSTOMERS_UPDATED" && Array.isArray(e.data.customers)) {
+          setCustomers(e.data.customers);
+        }
       };
     } catch (e) {}
+
+    const handleStorageChange = (e) => {
+      if (e.key === "greenbasket_orders" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setOrders(parsed);
+        } catch (err) {}
+      }
+      if (e.key === "greenbasket_customers" && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setCustomers(parsed);
+        } catch (err) {}
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
 
     const handleWindowMsg = (e) => {
       if (!e.data || typeof e.data !== "object") return;
@@ -1327,6 +1414,7 @@ function App() {
 
     return () => {
       if (ch) ch.close();
+      window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("message", handleWindowMsg);
     };
   }, [products, orders, storeSettings, customers]);
