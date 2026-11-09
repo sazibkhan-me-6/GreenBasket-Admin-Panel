@@ -41,7 +41,8 @@ import {
   Phone,
   CreditCard,
   Clock,
-  Printer
+  Printer,
+  Truck
 } from "lucide-react";
 
 const initialProducts = [
@@ -256,7 +257,8 @@ const defaultSettings = {
   promoDiscount: 20,
   storePhone: "+880 1712-345678",
   storeEmail: "support@greenbasket.com",
-  freeDeliveryThreshold: 49
+  freeDeliveryThreshold: 49,
+  storefrontUrl: "https://greenbasket-nu.vercel.app/"
 };
 
 const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
@@ -622,7 +624,8 @@ function App() {
       syncHash = "#sync=" + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
     } catch (e) {}
 
-    const targetUrl = `https://greenbasket-nu.vercel.app/${syncHash}`;
+    const cleanBase = (storeSettings.storefrontUrl || "https://greenbasket-nu.vercel.app").replace(/\/+$/, "");
+    const targetUrl = `${cleanBase}/${syncHash}`;
     const win = window.open(targetUrl, "GreenBasketLiveStorefront");
     if (win) {
       storefrontWindowRef.current = win;
@@ -1446,9 +1449,9 @@ function App() {
               type="button"
               onClick={handleOpenStorefront}
               className="live-store-link"
-              title="Open customer storefront with instant live sync"
+              title="Open customer storefront: https://greenbasket-nu.vercel.app/"
             >
-              <ExternalLink size={13} /> View Storefront
+              <ExternalLink size={13} /> View Storefront (greenbasket-nu)
             </button>
             <div className="user-pill">
               <span className="user-pill-avatar">{getInitials(currentUser.name)}</span>
@@ -2206,6 +2209,16 @@ function App() {
                           </td>
                           <td>
                             <div className="order-actions-cell">
+                              <a
+                                href={`https://greenbasket-nu.vercel.app/#track?id=${o.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="view-order-btn"
+                                title="Open Live Parcel Tracker for customer"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <Truck size={13} /> Track
+                              </a>
                               <button
                                 type="button"
                                 className="view-order-btn"
@@ -2394,6 +2407,66 @@ function App() {
             </p>
 
             <div className="settings-section">
+              {/* Card 0: Customer Storefront Link */}
+              <div className="settings-card" style={{ borderColor: "#a9d192", background: "#f8fbf5" }}>
+                <h3>
+                  <ExternalLink size={18} color="#2d551c" /> Customer Storefront Link
+                </h3>
+                <p>Live website where customers order items and place delivery orders</p>
+                <label>
+                  Customer Website URL:
+                  <div style={{ display: "flex", gap: "8px", marginTop: "5px" }}>
+                    <input
+                      type="url"
+                      value={storeSettings.storefrontUrl || "https://greenbasket-nu.vercel.app/"}
+                      onChange={(e) =>
+                        setStoreSettings({ ...storeSettings, storefrontUrl: e.target.value })
+                      }
+                      placeholder="https://greenbasket-nu.vercel.app/"
+                      style={{ margin: 0, flex: 1, fontWeight: 700, color: "#224713" }}
+                    />
+                    <button
+                      type="button"
+                      className="settings-save-btn"
+                      onClick={() => handleOpenStorefront()}
+                      style={{ padding: "6px 12px", whiteSpace: "nowrap" }}
+                      title="Visit Customer Website"
+                    >
+                      <ExternalLink size={13} /> Visit Store
+                    </button>
+                    <button
+                      type="button"
+                      className="settings-save-btn"
+                      style={{ background: "#eef6e9", color: "#2f5d1d", border: "1px solid #bddab0", padding: "6px 12px", whiteSpace: "nowrap" }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(storeSettings.storefrontUrl || "https://greenbasket-nu.vercel.app/");
+                        triggerToast("Customer storefront link copied to clipboard!");
+                      }}
+                      title="Copy customer website link"
+                    >
+                      <Copy size={13} /> Copy Link
+                    </button>
+                  </div>
+                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "12px" }}>
+                  <a
+                    href={storeSettings.storefrontUrl || "https://greenbasket-nu.vercel.app/"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: "12px", color: "#366820", fontWeight: 700 }}
+                  >
+                    👉 {storeSettings.storefrontUrl || "https://greenbasket-nu.vercel.app/"}
+                  </a>
+                  <button
+                    type="button"
+                    className="settings-save-btn"
+                    onClick={() => triggerToast("Customer website URL saved & updated!")}
+                  >
+                    <Check size={14} /> Save Store URL
+                  </button>
+                </div>
+              </div>
+
               {/* Card 1: Announcement Bar */}
               <div className="settings-card">
                 <h3>
@@ -2735,6 +2808,16 @@ function App() {
               </div>
 
               <div className="order-modal-foot">
+                <a
+                  href={`https://greenbasket-nu.vercel.app/#track?id=${selectedOrderForModal.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="soft"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  title="Open Customer Public Parcel Tracker"
+                >
+                  <Truck size={15} /> Track Parcel Live
+                </a>
                 <button
                   type="button"
                   className="soft"
