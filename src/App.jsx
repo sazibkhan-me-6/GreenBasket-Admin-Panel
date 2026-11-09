@@ -47,6 +47,8 @@ import {
   Send,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Calendar,
   BadgeCheck,
   Radio,
@@ -837,6 +839,7 @@ function App() {
     status: "Active"
   });
 
+  const [adminAccordionOpen, setAdminAccordionOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -2243,36 +2246,82 @@ function App() {
           >
             <ChartNoAxesCombined /> Analytics
           </button>
-          <button
-            className={tab === "settings" ? "active" : ""}
-            onClick={() => {
-              setTab("settings");
-              setMobileMenuOpen(false);
-            }}
-          >
-            <Settings /> Store Controls
-          </button>
-          <button
-            className={tab === "admin_control" ? "active" : ""}
-            onClick={() => {
-              setTab("admin_control");
-              setMobileMenuOpen(false);
-            }}
-          >
-            <ShieldCheck /> Admin Control
-          </button>
         </nav>
 
-        <div className="side-bottom">
-          <div className="avatar" title={currentUser.name}>
-            {getInitials(currentUser.name)}
+        {/* SIDEBAR ADMIN ACCORDION MENU */}
+        <div className="sidebar-admin-accordion">
+          {/* Accordion Content (Expands upward) */}
+          <div className={`accordion-content ${adminAccordionOpen || tab === "settings" || tab === "admin_control" ? "expanded" : "collapsed"}`}>
+            <button
+              type="button"
+              className={`accordion-menu-item ${tab === "settings" ? "active" : ""}`}
+              onClick={() => {
+                setTab("settings");
+                setMobileMenuOpen(false);
+              }}
+              title="Store Controls & Live Settings"
+            >
+              <Settings size={15} />
+              <span>Store Controls & Settings</span>
+            </button>
+
+            <button
+              type="button"
+              className={`accordion-menu-item ${tab === "admin_control" ? "active" : ""}`}
+              onClick={() => {
+                setTab("admin_control");
+                setMobileMenuOpen(false);
+              }}
+              title="Admin Roles & Access Management"
+            >
+              <ShieldCheck size={15} />
+              <span>Admin Control Hub</span>
+            </button>
+
+            <button
+              type="button"
+              className="accordion-menu-item"
+              onClick={() => {
+                handleOpenProfileModal();
+                setMobileMenuOpen(false);
+              }}
+              title="Update profile name & credentials"
+            >
+              <Lock size={15} />
+              <span>My Profile & Password</span>
+            </button>
+
+            <button
+              type="button"
+              className="accordion-menu-item danger"
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
+              title="Sign out of Admin Panel"
+            >
+              <LogOut size={15} />
+              <span>Log Out</span>
+            </button>
           </div>
-          <div className="admin-meta">
-            <b>{currentUser.name}</b>
-            <small>{currentUser.role || currentUser.email}</small>
-          </div>
-          <button className="logout-icon-btn" onClick={handleLogout} title="Log Out">
-            <LogOut size={16} />
+
+          {/* Accordion Header Toggle Button */}
+          <button
+            type="button"
+            className="accordion-header-btn"
+            onClick={() => setAdminAccordionOpen(!adminAccordionOpen)}
+            title="Click to toggle Admin Controls, Settings & Logout"
+          >
+            <div className="avatar" title={currentUser.name}>
+              {getInitials(currentUser.name)}
+            </div>
+            <div className="admin-meta">
+              <b>{currentUser.name}</b>
+              <small>{currentUser.role || currentUser.email}</small>
+            </div>
+            <div className={`accordion-chevron ${adminAccordionOpen || tab === "settings" || tab === "admin_control" ? "open" : ""}`}>
+              <ChevronUp size={16} />
+            </div>
           </button>
         </div>
       </aside>

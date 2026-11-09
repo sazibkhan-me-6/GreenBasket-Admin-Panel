@@ -2897,3 +2897,165 @@ footer {
 .admin-switch input:checked + .admin-slider:before {
   transform: translateX(20px);
 }
+
+/* ==========================================
+   SIDEBAR ADMIN ACCORDION MENU
+   ========================================== */
+.sidebar-admin-accordion {
+  margin-top: auto;
+  border-top: 1px solid #28441f;
+  background: rgba(18, 38, 13, 0.65);
+  position: relative;
+  border-radius: 0 0 0 0;
+  transition: all 0.25s ease;
+}
+
+.accordion-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 12px;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.accordion-header-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.accordion-header-btn .avatar {
+  background: #d8edc8;
+  color: #2c561b;
+  border-radius: 50%;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.accordion-header-btn .admin-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.accordion-header-btn .admin-meta b {
+  font-size: 13px;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accordion-header-btn .admin-meta small {
+  font-size: 11px;
+  color: #a4c997;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.accordion-chevron {
+  color: #9cd187;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+.accordion-chevron.open {
+  transform: rotate(180deg);
+}
+
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+  background: rgba(14, 30, 10, 0.95);
+  border-top: 1px solid #233e1b;
+}
+
+.accordion-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accordion-content.expanded {
+  max-height: 320px;
+  opacity: 1;
+  padding: 6px 0;
+}
+
+.accordion-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: #d1e7c7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.accordion-menu-item svg {
+  flex-shrink: 0;
+  color: #8bbd78;
+  transition: color 0.15s;
+}
+
+.accordion-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  padding-left: 20px;
+}
+
+.accordion-menu-item:hover svg {
+  color: #ffffff;
+}
+
+.accordion-menu-item.active {
+  background: #2b6118;
+  color: #ffffff;
+  font-weight: 700;
+  border-left: 3px solid #7fe054;
+}
+
+.accordion-menu-item.active svg {
+  color: #7fe054;
+}
+
+.accordion-menu-item.danger {
+  color: #fca5a5;
+  margin-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.accordion-menu-item.danger svg {
+  color: #f87171;
+}
+
+.accordion-menu-item.danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff9999;
+}
+
+.accordion-menu-item.danger:hover svg {
+  color: #ff9999;
+}
