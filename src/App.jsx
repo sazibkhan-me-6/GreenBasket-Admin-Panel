@@ -2603,12 +2603,6 @@ function App() {
                           <button onClick={() => edit(p)} title="Edit product details">
                             <Pencil size={15} />
                           </button>
-                          <button
-                            onClick={() => duplicateProduct(p)}
-                            title="Duplicate product"
-                          >
-                            <Copy size={15} />
-                          </button>
                           <button onClick={() => removeProduct(p.id)} title="Delete product">
                             <Trash2 size={15} />
                           </button>
@@ -2715,15 +2709,7 @@ function App() {
                           <button
                             type="button"
                             className="btn-card-action"
-                            onClick={() => duplicateProduct(p)}
-                            title="Clone product"
-                          >
-                            <Copy size={12} /> Clone
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-card-action"
-                            style={{ color: "#b93232" }}
+                            style={{ color: "#b93232", flex: "0 0 36px" }}
                             onClick={() => removeProduct(p.id)}
                             title="Delete item"
                           >
