@@ -707,22 +707,25 @@ const normalizeOrder = (raw) => {
 };
 
 // Headless bridge for seamless cross-domain synchronization with the storefront
-function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
+function HeadlessBridge({ products, orders, setOrders, storeSettings, customers, setCustomers }) {
   useEffect(() => {
     const sendData = () => {
       try {
         const storedProducts = localStorage.getItem("greenbasket_products");
         const storedOrders = localStorage.getItem("greenbasket_orders");
         const storedSettings = localStorage.getItem("greenbasket_settings");
+        const storedCustomers = localStorage.getItem("greenbasket_customers");
         const p = storedProducts ? JSON.parse(storedProducts) : products;
         const o = storedOrders ? JSON.parse(storedOrders) : orders;
         const s = storedSettings ? JSON.parse(storedSettings) : storeSettings;
+        const c = storedCustomers ? JSON.parse(storedCustomers) : customers;
         window.parent.postMessage(
           {
             type: "GB_CATALOG_SYNC",
             products: p,
             orders: o,
-            settings: s
+            settings: s,
+            customers: c
           },
           "*"
         );
@@ -737,7 +740,8 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
       if (
         e.key === "greenbasket_products" ||
         e.key === "greenbasket_orders" ||
-        e.key === "greenbasket_settings"
+        e.key === "greenbasket_settings" ||
+        e.key === "greenbasket_customers"
       ) {
         sendData();
       }
@@ -750,7 +754,8 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
       ch.onmessage = (e) => {
         if (
           e.data?.type === "GB_PRODUCTS_UPDATED" ||
-          e.data?.type === "GB_SETTINGS_UPDATED"
+          e.data?.type === "GB_SETTINGS_UPDATED" ||
+          e.data?.type === "GB_CUSTOMERS_UPDATED"
         ) {
           sendData();
         }
@@ -771,11 +776,85 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
           localStorage.setItem("greenbasket_orders", JSON.stringify(updated));
           if (setOrders) setOrders(updated);
 
+          // Auto update or enroll customer in Customer Control
+          try {
+            const currentCustsRaw = localStorage.getItem("greenbasket_customers");
+            let custList = currentCustsRaw ? JSON.parse(currentCustsRaw) : (customers || []);
+            const cPhone = normalized.customerPhone || normalized.phone || "";
+            const cName = normalized.customer || normalized.customerName || "Customer";
+            const cIdx = custList.findIndex(c => 
+              (cPhone && c.phone === cPhone) || 
+              (cName && c.name.toLowerCase() === cName.toLowerCase())
+            );
+
+            if (cIdx >= 0) {
+              custList[cIdx] = {
+                ...custList[cIdx],
+                totalOrders: (Number(custList[cIdx].totalOrders) || 0) + 1,
+                totalSpent: (Number(custList[cIdx].totalSpent) || 0) + Number(normalized.total || 0),
+                lastOrderDate: normalized.date || "Today",
+                address: normalized.deliveryAddress || normalized.address || custList[cIdx].address,
+                phone: cPhone || custList[cIdx].phone
+              };
+            } else {
+              const newC = {
+                id: "CUST-" + (1000 + custList.length + 1),
+                name: cName,
+                phone: cPhone,
+                email: "",
+                address: normalized.deliveryAddress || normalized.address || "Standard Home Delivery",
+                status: "Active",
+                totalOrders: 1,
+                totalSpent: Number(normalized.total || 0),
+                lastOrderDate: normalized.date || "Today",
+                joinedDate: normalized.date || "Today",
+                notes: normalized.notes || "Auto-enrolled from website order"
+              };
+              custList = [newC, ...custList];
+            }
+            localStorage.setItem("greenbasket_customers", JSON.stringify(custList));
+            if (setCustomers) setCustomers(custList);
+          } catch (cErr) {
+            console.warn("Failed to update customer in bridge", cErr);
+          }
+
           const notifyCh = new BroadcastChannel("gb_bridge_channel");
           notifyCh.postMessage({ type: "GB_ORDERS_UPDATED", orders: updated });
           notifyCh.close();
         } catch (err) {
           console.warn("Failed to save new order in bridge", err);
+        }
+      }
+
+      if (e.data.type === "GB_NEW_CUSTOMER" && e.data.customer) {
+        try {
+          const currentCustsRaw = localStorage.getItem("greenbasket_customers");
+          let custList = currentCustsRaw ? JSON.parse(currentCustsRaw) : (customers || []);
+          const incoming = e.data.customer;
+          const exists = custList.some(c => 
+            (incoming.email && c.email && c.email.toLowerCase() === incoming.email.toLowerCase()) ||
+            (incoming.phone && c.phone && c.phone === incoming.phone)
+          );
+          if (!exists) {
+            const newC = {
+              id: incoming.id || ("CUST-" + (1000 + custList.length + 1)),
+              name: incoming.name || "Customer",
+              phone: incoming.phone || "",
+              email: incoming.email || "",
+              address: incoming.address || "Standard Home Delivery",
+              status: incoming.status || "Active",
+              totalOrders: 0,
+              totalSpent: 0,
+              lastOrderDate: "N/A",
+              joinedDate: incoming.joinedDate || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+              notes: incoming.notes || "Registered via customer website"
+            };
+            custList = [newC, ...custList];
+            localStorage.setItem("greenbasket_customers", JSON.stringify(custList));
+            if (setCustomers) setCustomers(custList);
+          }
+        } catch (cErr) {
+          console.warn("Failed to save new customer in bridge", cErr);
         }
       }
     };
@@ -786,7 +865,7 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
       window.removeEventListener("message", handleParent);
       if (ch) ch.close();
     };
-  }, [products, orders, setOrders, storeSettings]);
+  }, [products, orders, setOrders, storeSettings, customers, setCustomers]);
 
   return <div style={{ display: "none" }} aria-hidden="true" />;
 }
@@ -1122,16 +1201,100 @@ function App() {
     return () => clearTimeout(debounceTimer);
   }, [products, orders, storeSettings]);
 
-  // Listen for handshakes & new orders from storefront
+  // Helper to handle incoming order and update both Orders and Customer Control
+  const handleIncomingNewOrder = (rawOrder) => {
+    const normalized = normalizeOrder(rawOrder);
+    setOrders((prev) => {
+      const next = [normalized, ...prev.filter((o) => o.id !== normalized.id)];
+      localStorage.setItem("greenbasket_orders", JSON.stringify(next));
+      return next;
+    });
+
+    // Auto-update or enroll customer in Customer Control
+    setCustomers((prevCusts) => {
+      const cPhone = normalized.customerPhone || normalized.phone || "";
+      const cName = normalized.customer || normalized.customerName || "Customer";
+      const cIdx = prevCusts.findIndex((c) =>
+        (cPhone && c.phone === cPhone) ||
+        (cName && c.name.toLowerCase() === cName.toLowerCase())
+      );
+
+      let nextCusts;
+      if (cIdx >= 0) {
+        nextCusts = [...prevCusts];
+        nextCusts[cIdx] = {
+          ...nextCusts[cIdx],
+          totalOrders: (Number(nextCusts[cIdx].totalOrders) || 0) + 1,
+          totalSpent: (Number(nextCusts[cIdx].totalSpent) || 0) + Number(normalized.total || 0),
+          lastOrderDate: normalized.date || "Today",
+          address: normalized.deliveryAddress || normalized.address || nextCusts[cIdx].address,
+          phone: cPhone || nextCusts[cIdx].phone
+        };
+      } else {
+        const newC = {
+          id: "CUST-" + (1000 + prevCusts.length + 1),
+          name: cName,
+          phone: cPhone,
+          email: "",
+          address: normalized.deliveryAddress || normalized.address || "Standard Home Delivery",
+          status: "Active",
+          totalOrders: 1,
+          totalSpent: Number(normalized.total || 0),
+          lastOrderDate: normalized.date || "Today",
+          joinedDate: normalized.date || "Today",
+          notes: normalized.notes || "Auto-enrolled from website order"
+        };
+        nextCusts = [newC, ...prevCusts];
+      }
+      localStorage.setItem("greenbasket_customers", JSON.stringify(nextCusts));
+      syncToGist(products, storeSettings, [normalized, ...orders], employees, registeredUsers, nextCusts);
+      return nextCusts;
+    });
+
+    triggerToast(`New Order #${normalized.id} received from ${normalized.customer}! Total: ${Number(normalized.total || 0).toFixed(2)}`);
+  };
+
+  const handleIncomingNewCustomer = (incomingCust) => {
+    setCustomers((prevCusts) => {
+      const exists = prevCusts.some((c) =>
+        (incomingCust.email && c.email && c.email.toLowerCase() === incomingCust.email.toLowerCase()) ||
+        (incomingCust.phone && c.phone && c.phone === incomingCust.phone)
+      );
+      if (!exists) {
+        const newC = {
+          id: incomingCust.id || ("CUST-" + (1000 + prevCusts.length + 1)),
+          name: incomingCust.name || "Customer",
+          phone: incomingCust.phone || "",
+          email: incomingCust.email || "",
+          address: incomingCust.address || "Standard Home Delivery",
+          status: incomingCust.status || "Active",
+          totalOrders: 0,
+          totalSpent: 0,
+          lastOrderDate: "N/A",
+          joinedDate: incomingCust.joinedDate || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+          notes: incomingCust.notes || "Registered via customer website"
+        };
+        const next = [newC, ...prevCusts];
+        localStorage.setItem("greenbasket_customers", JSON.stringify(next));
+        syncToGist(products, storeSettings, orders, employees, registeredUsers, next);
+        return next;
+      }
+      return prevCusts;
+    });
+    triggerToast(`New customer '${incomingCust.name}' registered & added to Customer Control!`);
+  };
+
+  // Listen for handshakes, new orders & new customer registrations from storefront
   useEffect(() => {
     let ch;
     try {
       ch = new BroadcastChannel("gb_bridge_channel");
       ch.onmessage = (e) => {
         if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
-          const normalized = normalizeOrder(e.data.order);
-          setOrders((prev) => [normalized, ...prev.filter((o) => o.id !== normalized.id)]);
-          triggerToast(`New Order #${normalized.id} received from ${normalized.customer}!`);
+          handleIncomingNewOrder(e.data.order);
+        }
+        if (e.data?.type === "GB_NEW_CUSTOMER" && e.data.customer) {
+          handleIncomingNewCustomer(e.data.customer);
         }
       };
     } catch (e) {}
@@ -1147,15 +1310,17 @@ function App() {
           products,
           orders,
           settings: storeSettings,
+          customers,
           timestamp: Date.now()
         };
         try { e.source?.postMessage(payload, "*"); } catch (err) {}
         try { storefrontWindowRef.current?.postMessage(payload, "*"); } catch (err) {}
       }
       if (e.data.type === "GB_NEW_ORDER" && e.data.order) {
-        const normalized = normalizeOrder(e.data.order);
-        setOrders((prev) => [normalized, ...prev.filter((o) => o.id !== normalized.id)]);
-        triggerToast(`New Order #${normalized.id} received from ${normalized.customer}!`);
+        handleIncomingNewOrder(e.data.order);
+      }
+      if (e.data.type === "GB_NEW_CUSTOMER" && e.data.customer) {
+        handleIncomingNewCustomer(e.data.customer);
       }
     };
     window.addEventListener("message", handleWindowMsg);
@@ -1164,7 +1329,7 @@ function App() {
       if (ch) ch.close();
       window.removeEventListener("message", handleWindowMsg);
     };
-  }, [products, orders, storeSettings]);
+  }, [products, orders, storeSettings, customers]);
 
   const handleOpenStorefront = () => {
     let syncHash = "";
@@ -2294,6 +2459,8 @@ function App() {
         orders={orders}
         setOrders={setOrders}
         storeSettings={storeSettings}
+        customers={customers}
+        setCustomers={setCustomers}
       />
     );
   }
