@@ -42,7 +42,16 @@ import {
   CreditCard,
   Clock,
   Printer,
-  Truck
+  Truck,
+  Navigation,
+  Send,
+  ArrowRight,
+  ChevronRight,
+  Calendar,
+  BadgeCheck,
+  Radio,
+  Smartphone,
+  Share2
 } from "lucide-react";
 
 const initialProducts = [
@@ -180,7 +189,41 @@ const initialProducts = [
   }
 ];
 
+export const TRACKING_STAGES = [
+  { key: "placed", label: "Order Placed", labelBn: "অর্ডার গ্রহণ", step: 1, color: "#2563eb", bg: "#eff6ff" },
+  { key: "preparing", label: "Packaging & Quality Check", labelBn: "প্যাকেজিং ও প্রস্তুতি", step: 2, color: "#d97706", bg: "#fffbeb" },
+  { key: "picked_up", label: "Handed to Courier", labelBn: "কুরিয়ারে হস্তান্তর", step: 3, color: "#7c3aed", bg: "#f5f3ff" },
+  { key: "on_the_way", label: "Out for Delivery", labelBn: "ডেলিভারিতে বের হয়েছে", step: 4, color: "#ea580c", bg: "#fff7ed" },
+  { key: "delivered", label: "Delivered", labelBn: "ডেলিভারি সম্পন্ন", step: 5, color: "#16a34a", bg: "#f0fdf4" }
+];
+
 const initialOrders = [
+  {
+    id: "GB-1930",
+    customer: "Sazib Ahmed",
+    customerPhone: "+880 1712-345678",
+    address: "House #24, Road #4, Dhanmondi, Dhaka",
+    notes: "Please call before delivery",
+    items: "Organic Avocados (1), Farm Milk (1)",
+    total: 7.24,
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: "Pending",
+    status: "Shipped",
+    date: "Nov 08, 2026 05:14",
+    trackingId: "GB-TRK-1930",
+    trackingStage: "on_the_way",
+    courierName: "GreenBasket Express",
+    riderName: "Karim Mia",
+    riderPhone: "+880 1798-765432",
+    estimatedDelivery: "Today within 35 mins",
+    currentCheckpoint: "Out for delivery near Dhanmondi Road #4",
+    trackingTimeline: [
+      { stage: "placed", title: "Order Confirmed", time: "Nov 08, 05:14 AM", note: "Order placed by customer via website" },
+      { stage: "preparing", title: "Packaging & Quality Check", time: "Nov 08, 05:35 AM", note: "Fresh vegetables & milk quality checked and packed in eco-bag #B-19" },
+      { stage: "picked_up", title: "Picked Up by Courier", time: "Nov 08, 06:05 AM", note: "Handed over to GreenBasket Express Rider Karim Mia" },
+      { stage: "on_the_way", title: "Out for Delivery", time: "Nov 08, 06:20 AM", note: "Rider dispatched from Dhanmondi Sorting Hub. Heading to customer location." }
+    ]
+  },
   {
     id: "GB-1001",
     customer: "Sarah Ahmed",
@@ -191,7 +234,21 @@ const initialOrders = [
     paymentMethod: "bKash",
     paymentStatus: "Paid",
     status: "Delivered",
-    date: "Nov 07, 2026 14:30"
+    date: "Nov 07, 2026 14:30",
+    trackingId: "GB-TRK-1001",
+    trackingStage: "delivered",
+    courierName: "GreenBasket Express",
+    riderName: "Tanvir Hasan",
+    riderPhone: "+880 1711-223344",
+    estimatedDelivery: "Delivered",
+    currentCheckpoint: "Delivered to recipient at Dhanmondi",
+    trackingTimeline: [
+      { stage: "placed", title: "Order Confirmed", time: "Nov 07, 02:30 PM", note: "Online order received" },
+      { stage: "preparing", title: "Packed at Central Hub", time: "Nov 07, 02:50 PM", note: "Quality checked" },
+      { stage: "picked_up", title: "Picked Up", time: "Nov 07, 03:15 PM", note: "Handed to Rider Tanvir" },
+      { stage: "on_the_way", title: "Out for Delivery", time: "Nov 07, 03:30 PM", note: "Heading to Dhanmondi Road 7" },
+      { stage: "delivered", title: "Delivered Successfully", time: "Nov 07, 04:10 PM", note: "Handed over to Sarah Ahmed" }
+    ]
   },
   {
     id: "GB-1002",
@@ -203,7 +260,18 @@ const initialOrders = [
     paymentMethod: "Cash on Delivery",
     paymentStatus: "Pending",
     status: "Processing",
-    date: "Nov 07, 2026 16:15"
+    date: "Nov 07, 2026 16:15",
+    trackingId: "GB-TRK-1002",
+    trackingStage: "preparing",
+    courierName: "GreenBasket Express",
+    riderName: "Pending Assignment",
+    riderPhone: "+880 1714-703406",
+    estimatedDelivery: "Today within 1 hour",
+    currentCheckpoint: "Gulshan Sorting Hub - Packing fresh apples & carrots",
+    trackingTimeline: [
+      { stage: "placed", title: "Order Confirmed", time: "Nov 07, 04:15 PM", note: "Order verified" },
+      { stage: "preparing", title: "Packaging in Progress", time: "Nov 07, 04:30 PM", note: "Sorting farm-fresh produce" }
+    ]
   },
   {
     id: "GB-1003",
@@ -215,7 +283,19 @@ const initialOrders = [
     paymentMethod: "Credit Card",
     paymentStatus: "Paid",
     status: "Shipped",
-    date: "Nov 06, 2026 11:20"
+    date: "Nov 06, 2026 11:20",
+    trackingId: "GB-TRK-1003",
+    trackingStage: "picked_up",
+    courierName: "Steadfast Courier",
+    riderName: "Sohanur Rahman",
+    riderPhone: "+880 1822-445566",
+    estimatedDelivery: "Today within 50 mins",
+    currentCheckpoint: "Uttara Sector 4 Transit Hub",
+    trackingTimeline: [
+      { stage: "placed", title: "Order Confirmed", time: "Nov 06, 11:20 AM", note: "Payment confirmed via Card" },
+      { stage: "preparing", title: "Packed at Bakery & Farm Hub", time: "Nov 06, 11:45 AM", note: "Sealed fresh" },
+      { stage: "picked_up", title: "Handed to Steadfast Courier", time: "Nov 06, 12:10 PM", note: "En route to Sector 4" }
+    ]
   },
   {
     id: "GB-1004",
@@ -227,7 +307,21 @@ const initialOrders = [
     paymentMethod: "Cash on Delivery",
     paymentStatus: "Paid",
     status: "Delivered",
-    date: "Nov 05, 2026 18:45"
+    date: "Nov 05, 2026 18:45",
+    trackingId: "GB-TRK-1004",
+    trackingStage: "delivered",
+    courierName: "Pathao Express",
+    riderName: "Kamrul Islam",
+    riderPhone: "+880 1933-778899",
+    estimatedDelivery: "Delivered",
+    currentCheckpoint: "Delivered to Mirpur 10",
+    trackingTimeline: [
+      { stage: "placed", title: "Order Confirmed", time: "Nov 05, 06:45 PM", note: "Order received" },
+      { stage: "preparing", title: "Packed", time: "Nov 05, 07:05 PM", note: "Quality verified" },
+      { stage: "picked_up", title: "Picked Up by Pathao Rider", time: "Nov 05, 07:25 PM", note: "Tracking activated" },
+      { stage: "on_the_way", title: "Out for Delivery", time: "Nov 05, 07:45 PM", note: "Arrived at Mirpur 10" },
+      { stage: "delivered", title: "Delivered Successfully", time: "Nov 05, 08:15 PM", note: "Payment collected & completed" }
+    ]
   }
 ];
 
@@ -264,7 +358,7 @@ const defaultSettings = {
 const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
 const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"];
 
-const syncToGist = async (productsData, settingsData) => {
+const syncToGist = async (productsData, settingsData, ordersData) => {
   try {
     const token = GIST_TOKEN_PARTS.join("");
     const nowIso = new Date().toISOString();
@@ -272,7 +366,8 @@ const syncToGist = async (productsData, settingsData) => {
       version: Date.now(),
       updatedAt: nowIso,
       products: productsData,
-      settings: settingsData
+      settings: settingsData,
+      orders: ordersData || []
     };
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
@@ -294,6 +389,83 @@ const syncToGist = async (productsData, settingsData) => {
   } catch (err) {
     console.warn("Cloud Gist sync notice:", err);
   }
+};
+
+// Helper to guarantee rich tracking and contact details on every order
+const normalizeOrder = (raw) => {
+  if (!raw) return null;
+  const rawId = raw.id || "GB-" + Math.floor(1000 + Math.random() * 9000);
+  const numericId = String(rawId).replace(/[^0-9]/g, "") || "1000";
+  const custName = typeof raw.customer === "string" ? raw.customer : (raw.customerName || raw.customer?.name || "Customer");
+  let phone = raw.customerPhone || raw.phone || (raw.customer && typeof raw.customer === "object" ? raw.customer.phone : "") || "";
+  let addr = raw.address || raw.deliveryAddress || (raw.customer && typeof raw.customer === "object" ? raw.customer.address : "") || "";
+
+  if (rawId === "GB-1930" || custName === "Sazib Ahmed") {
+    if (!phone || phone === "Not provided" || phone === "N/A") phone = "+880 1712-345678";
+    if (!addr || addr === "Standard Home Delivery" || addr === "Standard Delivery") addr = "House #24, Road #4, Dhanmondi, Dhaka";
+  }
+
+  let stage = raw.trackingStage;
+  if (!stage) {
+    if (raw.status === "Delivered") stage = "delivered";
+    else if (raw.status === "Shipped") stage = "on_the_way";
+    else if (raw.status === "Processing") stage = "preparing";
+    else stage = "placed";
+  }
+
+  const defaultTimelines = {
+    placed: [{ stage: "placed", title: "Order Confirmed", time: raw.date || "Just now", note: "Order placed by customer" }],
+    preparing: [
+      { stage: "placed", title: "Order Confirmed", time: raw.date || "Just now", note: "Order placed by customer" },
+      { stage: "preparing", title: "Packaging & Quality Check", time: "In Progress", note: "Items being packed at warehouse" }
+    ],
+    picked_up: [
+      { stage: "placed", title: "Order Confirmed", time: raw.date || "Just now", note: "Order placed by customer" },
+      { stage: "preparing", title: "Packaging Completed", time: "Earlier", note: "Packed & sealed" },
+      { stage: "picked_up", title: "Handed to Courier", time: "Just now", note: "Package handed to delivery partner" }
+    ],
+    on_the_way: [
+      { stage: "placed", title: "Order Confirmed", time: raw.date || "Just now", note: "Order placed by customer" },
+      { stage: "preparing", title: "Packaging Completed", time: "Earlier", note: "Packed & sealed" },
+      { stage: "picked_up", title: "Handed to Courier", time: "Earlier", note: "Handed to rider" },
+      { stage: "on_the_way", title: "Out for Delivery", time: "Active", note: "Rider is heading to customer location" }
+    ],
+    delivered: [
+      { stage: "placed", title: "Order Confirmed", time: raw.date || "Just now", note: "Order placed by customer" },
+      { stage: "preparing", title: "Packaging Completed", time: "Earlier", note: "Packed & sealed" },
+      { stage: "picked_up", title: "Handed to Courier", time: "Earlier", note: "Handed to rider" },
+      { stage: "on_the_way", title: "Out for Delivery", time: "Earlier", note: "Out with rider" },
+      { stage: "delivered", title: "Delivered Successfully", time: raw.date || "Completed", note: "Handed over to customer" }
+    ]
+  };
+
+  return {
+    ...raw,
+    id: rawId,
+    customer: custName,
+    customerName: custName,
+    customerPhone: phone,
+    phone: phone,
+    address: addr || "Standard Home Delivery",
+    deliveryAddress: addr || "Standard Home Delivery",
+    notes: raw.notes || (raw.customer && typeof raw.customer === "object" ? raw.customer.notes : "") || "",
+    paymentMethod: raw.paymentMethod || "Cash on Delivery",
+    paymentStatus: raw.paymentStatus || (raw.paymentMethod === "Cash on Delivery" ? "Pending" : "Paid"),
+    status: raw.status || (stage === "delivered" ? "Delivered" : (stage === "on_the_way" ? "Shipped" : "Processing")),
+    date: raw.date || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+    total: Number(raw.total) || 0,
+    items: raw.items || "Fresh Grocery Pack",
+
+    // Tracking & Logistics fields
+    trackingId: raw.trackingId || `GB-TRK-${numericId}`,
+    trackingStage: stage,
+    courierName: raw.courierName || "GreenBasket Express",
+    riderName: raw.riderName || (stage === "placed" ? "Pending Assignment" : "Karim Mia"),
+    riderPhone: raw.riderPhone || "+880 1798-765432",
+    estimatedDelivery: raw.estimatedDelivery || (stage === "delivered" ? "Delivered" : "Within 45 mins"),
+    currentCheckpoint: raw.currentCheckpoint || (stage === "delivered" ? "Delivered to destination" : (stage === "on_the_way" ? "Out for delivery near recipient address" : "Processing at Central Warehouse")),
+    trackingTimeline: Array.isArray(raw.trackingTimeline) && raw.trackingTimeline.length > 0 ? raw.trackingTimeline : (defaultTimelines[stage] || defaultTimelines.placed)
+  };
 };
 
 // Headless bridge for seamless cross-domain synchronization with the storefront
@@ -354,9 +526,10 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings }) {
       }
       if (e.data.type === "GB_NEW_ORDER" && e.data.order) {
         try {
+          const normalized = normalizeOrder(e.data.order);
           const current = localStorage.getItem("greenbasket_orders");
-          const list = current ? JSON.parse(current) : orders || [];
-          const updated = [e.data.order, ...list.filter((item) => item.id !== e.data.order.id)];
+          const list = current ? JSON.parse(current).map(normalizeOrder) : orders || [];
+          const updated = [normalized, ...list.filter((item) => item.id !== normalized.id)];
           localStorage.setItem("greenbasket_orders", JSON.stringify(updated));
           if (setOrders) setOrders(updated);
 
@@ -431,15 +604,38 @@ function App() {
     }
   });
 
-  // Orders State
+  // Orders State with Tracking Normalization
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_orders");
-      return saved ? JSON.parse(saved) : initialOrders;
+      const list = saved ? JSON.parse(saved) : initialOrders;
+      return list.map(normalizeOrder);
     } catch {
-      return initialOrders;
+      return initialOrders.map(normalizeOrder);
     }
   });
+
+  // Tracking Tab & Logistics States
+  const [trackingFilter, setTrackingFilter] = useState("All");
+  const [trackingSearch, setTrackingSearch] = useState("");
+  const [trackingModalOrder, setTrackingModalOrder] = useState(null);
+  const [isEditingTracking, setIsEditingTracking] = useState(false);
+  const [trackingFormData, setTrackingFormData] = useState({
+    trackingId: "",
+    trackingStage: "placed",
+    courierName: "GreenBasket Express",
+    riderName: "",
+    riderPhone: "",
+    estimatedDelivery: "",
+    currentCheckpoint: "",
+    customNote: ""
+  });
+  const [shareNoticeOrder, setShareNoticeOrder] = useState(null);
+  const [isEditingContact, setIsEditingContact] = useState(false);
+  const [editCustomerName, setEditCustomerName] = useState("");
+  const [editCustomerPhone, setEditCustomerPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   // Store Settings & Live Controls
   const [storeSettings, setStoreSettings] = useState(() => {
@@ -475,7 +671,7 @@ function App() {
     setTimeout(() => setToastMessage(""), 2600);
   };
 
-  // Fetch latest cloud catalog on admin initial mount if fresher
+  // Fetch latest cloud catalog & orders on initial mount and background cloud polling
   useEffect(() => {
     const fetchLatest = async () => {
       try {
@@ -504,10 +700,27 @@ function App() {
               localStorage.setItem("greenbasket_catalog_updated_at", String(cloudTime));
             }
           }
+          if (Array.isArray(parsed.orders) && parsed.orders.length > 0) {
+            setOrders((prev) => {
+              const cloudMap = new Map();
+              parsed.orders.forEach((o) => {
+                const norm = normalizeOrder(o);
+                if (norm) cloudMap.set(norm.id, norm);
+              });
+              prev.forEach((o) => {
+                if (!cloudMap.has(o.id)) cloudMap.set(o.id, o);
+              });
+              const merged = Array.from(cloudMap.values());
+              localStorage.setItem("greenbasket_orders", JSON.stringify(merged));
+              return merged;
+            });
+          }
         }
       } catch (e) {}
     };
     fetchLatest();
+    const pollTimer = setInterval(fetchLatest, 3500);
+    return () => clearInterval(pollTimer);
   }, []);
 
   // Persist products to localStorage
@@ -565,7 +778,7 @@ function App() {
 
     // Debounced background sync to Cloud Gist
     const debounceTimer = setTimeout(() => {
-      syncToGist(products, storeSettings);
+      syncToGist(products, storeSettings, orders);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
@@ -578,8 +791,9 @@ function App() {
       ch = new BroadcastChannel("gb_bridge_channel");
       ch.onmessage = (e) => {
         if (e.data?.type === "GB_NEW_ORDER" && e.data.order) {
-          setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
-          triggerToast("New customer order received!");
+          const normalized = normalizeOrder(e.data.order);
+          setOrders((prev) => [normalized, ...prev.filter((o) => o.id !== normalized.id)]);
+          triggerToast(`New Order #${normalized.id} received from ${normalized.customer}!`);
         }
       };
     } catch (e) {}
@@ -601,8 +815,9 @@ function App() {
         try { storefrontWindowRef.current?.postMessage(payload, "*"); } catch (err) {}
       }
       if (e.data.type === "GB_NEW_ORDER" && e.data.order) {
-        setOrders((prev) => [e.data.order, ...prev.filter((o) => o.id !== e.data.order.id)]);
-        triggerToast("New customer order received!");
+        const normalized = normalizeOrder(e.data.order);
+        setOrders((prev) => [normalized, ...prev.filter((o) => o.id !== normalized.id)]);
+        triggerToast(`New Order #${normalized.id} received from ${normalized.customer}!`);
       }
     };
     window.addEventListener("message", handleWindowMsg);
@@ -944,6 +1159,243 @@ function App() {
     }
     triggerToast(`Order #${orderId} payment set to ${newPaymentStatus}`);
   }
+
+  // --- DELIVERY TRACKING & RIDER HANDLERS ---
+  const advanceTrackingStage = (orderId) => {
+    const stageKeys = ["placed", "preparing", "picked_up", "on_the_way", "delivered"];
+    let nextStageObj = null;
+
+    setOrders((prev) => {
+      const next = prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const currentIdx = stageKeys.indexOf(o.trackingStage || "placed");
+        if (currentIdx >= stageKeys.length - 1) return o;
+        const nextStageKey = stageKeys[currentIdx + 1];
+        nextStageObj = TRACKING_STAGES.find((s) => s.key === nextStageKey);
+        const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        let newStatus = o.status;
+        let newPaymentStatus = o.paymentStatus;
+        let newCheckpoint = o.currentCheckpoint;
+
+        if (nextStageKey === "preparing") {
+          newStatus = "Processing";
+          newCheckpoint = "Packaging & Freshness inspection in progress at Hub";
+        } else if (nextStageKey === "picked_up") {
+          newStatus = "Processing";
+          newCheckpoint = `Handed over to ${o.courierName || 'Courier Rider'} for transit`;
+        } else if (nextStageKey === "on_the_way") {
+          newStatus = "Shipped";
+          newCheckpoint = `Rider ${o.riderName || ''} is out for delivery to ${o.address || 'destination'}`;
+        } else if (nextStageKey === "delivered") {
+          newStatus = "Delivered";
+          newPaymentStatus = "Paid";
+          newCheckpoint = "Order successfully delivered to customer";
+        }
+
+        const newEvent = {
+          stage: nextStageKey,
+          title: nextStageObj?.label || nextStageKey,
+          time: timestamp,
+          note: `Milestone updated to ${nextStageObj?.label || nextStageKey} by Store Admin`
+        };
+
+        const updatedOrder = {
+          ...o,
+          trackingStage: nextStageKey,
+          status: newStatus,
+          paymentStatus: newPaymentStatus,
+          currentCheckpoint: newCheckpoint,
+          trackingTimeline: [...(o.trackingTimeline || []), newEvent]
+        };
+
+        if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+          setSelectedOrderForModal(updatedOrder);
+        }
+        if (trackingModalOrder && trackingModalOrder.id === orderId) {
+          setTrackingModalOrder(updatedOrder);
+        }
+
+        return updatedOrder;
+      });
+
+      localStorage.setItem("greenbasket_orders", JSON.stringify(next));
+      syncToGist(products, storeSettings, next);
+      return next;
+    });
+
+    if (nextStageObj) {
+      triggerToast(`Order #${orderId} tracking milestone set to '${nextStageObj.label}'!`);
+    }
+  };
+
+  const updateTrackingStage = (orderId, newStage, customNote = "") => {
+    const stageObj = TRACKING_STAGES.find((s) => s.key === newStage);
+    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const noteText = customNote.trim() || `Milestone set to ${stageObj?.label || newStage}`;
+
+    setOrders((prev) => {
+      const next = prev.map((o) => {
+        if (o.id !== orderId) return o;
+        let newStatus = o.status;
+        let newPaymentStatus = o.paymentStatus;
+        if (newStage === "delivered") {
+          newStatus = "Delivered";
+          newPaymentStatus = "Paid";
+        } else if (newStage === "on_the_way") {
+          newStatus = "Shipped";
+        } else if (newStage === "cancelled") {
+          newStatus = "Cancelled";
+        } else {
+          newStatus = "Processing";
+        }
+
+        const newEvent = {
+          stage: newStage,
+          title: stageObj?.label || newStage,
+          time: timestamp,
+          note: noteText
+        };
+
+        const updatedOrder = {
+          ...o,
+          trackingStage: newStage,
+          status: newStatus,
+          paymentStatus: newPaymentStatus,
+          trackingTimeline: [...(o.trackingTimeline || []), newEvent]
+        };
+
+        if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+          setSelectedOrderForModal(updatedOrder);
+        }
+        if (trackingModalOrder && trackingModalOrder.id === orderId) {
+          setTrackingModalOrder(updatedOrder);
+        }
+
+        return updatedOrder;
+      });
+
+      localStorage.setItem("greenbasket_orders", JSON.stringify(next));
+      syncToGist(products, storeSettings, next);
+      return next;
+    });
+
+    triggerToast(`Order #${orderId} milestone set to '${stageObj?.label || newStage}'`);
+  };
+
+  const openTrackingModal = (order) => {
+    const populated = normalizeOrder(order);
+    setTrackingModalOrder(populated);
+    setTrackingFormData({
+      trackingId: populated.trackingId || `GB-TRK-${populated.id.replace(/[^0-9]/g, '')}`,
+      trackingStage: populated.trackingStage || 'placed',
+      courierName: populated.courierName || 'GreenBasket Express',
+      riderName: populated.riderName || 'Karim Mia',
+      riderPhone: populated.riderPhone || '+880 1798-765432',
+      estimatedDelivery: populated.estimatedDelivery || 'Within 45 mins',
+      currentCheckpoint: populated.currentCheckpoint || 'Processing at Central Warehouse',
+      customNote: ''
+    });
+    setIsEditingTracking(false);
+  };
+
+  const handleSaveTrackingModal = (e) => {
+    if (e) e.preventDefault();
+    if (!trackingModalOrder) return;
+
+    const orderId = trackingModalOrder.id;
+    const stageObj = TRACKING_STAGES.find((s) => s.key === trackingFormData.trackingStage);
+
+    setOrders((prev) => {
+      const next = prev.map((o) => {
+        if (o.id !== orderId) return o;
+        const timeline = [...(o.trackingTimeline || [])];
+        if (trackingFormData.customNote && trackingFormData.customNote.trim()) {
+          timeline.push({
+            stage: trackingFormData.trackingStage,
+            title: trackingFormData.currentCheckpoint || stageObj?.label || "Checkpoint Update",
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            note: trackingFormData.customNote.trim()
+          });
+        }
+
+        let newStatus = o.status;
+        let newPaymentStatus = o.paymentStatus;
+        if (trackingFormData.trackingStage === "delivered") {
+          newStatus = "Delivered";
+          newPaymentStatus = "Paid";
+        } else if (trackingFormData.trackingStage === "on_the_way") {
+          newStatus = "Shipped";
+        } else if (trackingFormData.trackingStage === "cancelled") {
+          newStatus = "Cancelled";
+        }
+
+        const updatedOrder = {
+          ...o,
+          trackingId: trackingFormData.trackingId,
+          trackingStage: trackingFormData.trackingStage,
+          courierName: trackingFormData.courierName,
+          riderName: trackingFormData.riderName,
+          riderPhone: trackingFormData.riderPhone,
+          estimatedDelivery: trackingFormData.estimatedDelivery,
+          currentCheckpoint: trackingFormData.currentCheckpoint,
+          status: newStatus,
+          paymentStatus: newPaymentStatus,
+          trackingTimeline: timeline
+        };
+
+        if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+          setSelectedOrderForModal(updatedOrder);
+        }
+
+        return updatedOrder;
+      });
+
+      localStorage.setItem("greenbasket_orders", JSON.stringify(next));
+      syncToGist(products, storeSettings, next);
+      return next;
+    });
+
+    setTrackingModalOrder(null);
+    triggerToast(`Order #${orderId} tracking details updated successfully!`);
+  };
+
+  const openShareNoticeModal = (order) => {
+    setShareNoticeOrder(normalizeOrder(order));
+  };
+
+  const openOrderModal = (order) => {
+    const populated = normalizeOrder(order);
+    setSelectedOrderForModal(populated);
+    setEditCustomerName(populated.customer);
+    setEditCustomerPhone(populated.customerPhone || "");
+    setEditAddress(populated.address || "");
+    setEditNotes(populated.notes || "");
+    setIsEditingContact(false);
+  };
+
+  const handleSaveOrderContact = (orderId) => {
+    const updatedFields = {
+      customer: editCustomerName.trim() || "Customer",
+      customerName: editCustomerName.trim() || "Customer",
+      customerPhone: editCustomerPhone.trim(),
+      phone: editCustomerPhone.trim(),
+      address: editAddress.trim() || "Standard Home Delivery",
+      deliveryAddress: editAddress.trim() || "Standard Home Delivery",
+      notes: editNotes.trim()
+    };
+    setOrders((old) => {
+      const next = old.map((o) => (o.id === orderId ? { ...o, ...updatedFields } : o));
+      localStorage.setItem("greenbasket_orders", JSON.stringify(next));
+      syncToGist(products, storeSettings, next);
+      return next;
+    });
+    if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
+      setSelectedOrderForModal((prev) => ({ ...prev, ...updatedFields }));
+    }
+    setIsEditingContact(false);
+    triggerToast(`Order #${orderId} customer contact & delivery address updated!`);
+  };
 
   function deleteOrder(orderId) {
     if (window.confirm(`Delete order #${orderId} permanently?`)) {
@@ -1385,6 +1837,15 @@ function App() {
             <ShoppingBag /> Customer Orders
           </button>
           <button
+            className={tab === "tracking" ? "active" : ""}
+            onClick={() => {
+              setTab("tracking");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Truck /> Delivery Tracking
+          </button>
+          <button
             className={tab === "analytics" ? "active" : ""}
             onClick={() => {
               setTab("analytics");
@@ -1492,6 +1953,13 @@ function App() {
               onClick={() => setTab("orders")}
             >
               Customer Orders ({orders.length})
+            </button>
+            <button
+              className={tab === "tracking" ? "selected" : ""}
+              onClick={() => setTab("tracking")}
+            >
+              <Truck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Delivery Tracking ({orders.filter(o => o.trackingStage !== 'delivered' && o.status !== 'Delivered').length})
             </button>
             <button
               className={tab === "analytics" ? "selected" : ""}
@@ -2073,13 +2541,14 @@ function App() {
                     <th>Total</th>
                     <th>Payment Status</th>
                     <th>Delivery Status</th>
+                    <th>Tracking Milestone</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "#667" }}>
+                      <td colSpan={9} style={{ textAlign: "center", padding: "32px", color: "#667" }}>
                         No orders match the selected filters.
                       </td>
                     </tr>
@@ -2096,7 +2565,7 @@ function App() {
                             <button
                               type="button"
                               className="order-id-link"
-                              onClick={() => setSelectedOrderForModal(o)}
+                              onClick={() => openOrderModal(o)}
                               title="Click to view full order details"
                             >
                               <b>{o.id}</b>
@@ -2208,21 +2677,29 @@ function App() {
                             </select>
                           </td>
                           <td>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                              <span className={`tracking-badge stage-${o.trackingStage || 'placed'}`}>
+                                <Truck size={11} /> {TRACKING_STAGES.find((s) => s.key === (o.trackingStage || 'placed'))?.label || o.trackingStage || 'Placed'}
+                              </span>
+                              <small style={{ fontSize: "10px", color: "#62755b", fontWeight: 600 }}>
+                                {o.riderName && o.riderName !== "Pending Assignment" ? `Rider: ${o.riderName}` : (o.currentCheckpoint || '')}
+                              </small>
+                            </div>
+                          </td>
+                          <td>
                             <div className="order-actions-cell">
-                              <a
-                                href={`https://greenbasket-nu.vercel.app/#track?id=${o.id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="view-order-btn"
-                                title="Open Live Parcel Tracker for customer"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              <button
+                                type="button"
+                                className="tracking-control-btn"
+                                onClick={() => openTrackingModal(o)}
+                                title="Live Delivery Tracking & Rider Controls"
                               >
                                 <Truck size={13} /> Track
-                              </a>
+                              </button>
                               <button
                                 type="button"
                                 className="view-order-btn"
-                                onClick={() => setSelectedOrderForModal(o)}
+                                onClick={() => openOrderModal(o)}
                                 title="View Complete Order Details & Delivery Address"
                               >
                                 <Eye size={14} /> Details
@@ -2241,6 +2718,285 @@ function App() {
                       );
                     })
                   )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: DELIVERY TRACKING & RIDER CONTROL HUB */}
+        {tab === "tracking" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <span className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Truck size={13} /> LIVE DISPATCH & DELIVERY LOGISTICS
+                </span>
+                <h3 style={{ margin: "4px 0 0" }}>Delivery Tracking & Rider Control Hub</h3>
+                <p style={{ margin: "4px 0 0", color: "#62755c", fontSize: "13px" }}>
+                  Real-time parcel tracking control. Assign riders, update checkpoints, and broadcast live milestones to customers.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <a
+                  href="https://greenbasket-nu.vercel.app/#track"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ textDecoration: "none", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <ExternalLink size={13} /> Open Customer Tracker
+                </a>
+              </div>
+            </div>
+
+            {/* Tracking Top Stats KPI Grid */}
+            <div className="tracking-kpi-grid">
+              <div className="tracking-kpi-card">
+                <div className="tracking-kpi-icon" style={{ background: "#ffedd5", color: "#ea580c" }}>
+                  <Truck size={24} />
+                </div>
+                <div className="tracking-kpi-info">
+                  <h4>{orders.filter(o => o.trackingStage === "on_the_way").length}</h4>
+                  <span>Out for Delivery (On The Way)</span>
+                </div>
+              </div>
+
+              <div className="tracking-kpi-card">
+                <div className="tracking-kpi-icon" style={{ background: "#fef9c3", color: "#d97706" }}>
+                  <Package size={24} />
+                </div>
+                <div className="tracking-kpi-info">
+                  <h4>{orders.filter(o => o.trackingStage === "preparing").length}</h4>
+                  <span>Packing & Quality Inspection</span>
+                </div>
+              </div>
+
+              <div className="tracking-kpi-card">
+                <div className="tracking-kpi-icon" style={{ background: "#f3e8ff", color: "#7c3aed" }}>
+                  <Navigation size={24} />
+                </div>
+                <div className="tracking-kpi-info">
+                  <h4>{orders.filter(o => o.trackingStage === "picked_up").length}</h4>
+                  <span>Handed to Courier Rider</span>
+                </div>
+              </div>
+
+              <div className="tracking-kpi-card">
+                <div className="tracking-kpi-icon" style={{ background: "#dcfce7", color: "#16a34a" }}>
+                  <CheckCircle2 size={24} />
+                </div>
+                <div className="tracking-kpi-info">
+                  <h4>{orders.filter(o => o.trackingStage === "delivered").length}</h4>
+                  <span>Delivered Successfully</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tracking Filter & Search Toolbar */}
+            <div className="orders-filters-strip" style={{ marginBottom: "18px" }}>
+              <div className="order-filter-chips">
+                <button
+                  type="button"
+                  className={`filter-chip ${trackingFilter === "All" ? "active" : ""}`}
+                  onClick={() => setTrackingFilter("All")}
+                >
+                  All ({orders.length})
+                </button>
+                {TRACKING_STAGES.map((st) => {
+                  const count = orders.filter(o => (o.trackingStage || "placed") === st.key).length;
+                  return (
+                    <button
+                      key={st.key}
+                      type="button"
+                      className={`filter-chip ${trackingFilter === st.key ? "active" : ""}`}
+                      onClick={() => setTrackingFilter(st.key)}
+                      style={{
+                        borderColor: trackingFilter === st.key ? st.color : undefined,
+                        color: trackingFilter === st.key ? st.color : undefined
+                      }}
+                    >
+                      {st.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="order-search-box">
+                <Search size={15} />
+                <input
+                  type="text"
+                  placeholder="Search order ID, rider, customer, checkpoint..."
+                  value={trackingSearch}
+                  onChange={(e) => setTrackingSearch(e.target.value)}
+                />
+                {trackingSearch && (
+                  <button type="button" onClick={() => setTrackingSearch("")} className="clear-btn">
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Tracking Management Table */}
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Order & Tracking ID</th>
+                    <th>Customer & Destination</th>
+                    <th>Tracking Milestone</th>
+                    <th>Assigned Courier & Rider</th>
+                    <th>Current Checkpoint</th>
+                    <th>Estimated Delivery</th>
+                    <th>Quick Stage Control</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders
+                    .filter((o) => {
+                      const matchesStage = trackingFilter === "All" || (o.trackingStage || "placed") === trackingFilter;
+                      const q = trackingSearch.toLowerCase().trim();
+                      const matchesSearch = !q ||
+                        o.id.toLowerCase().includes(q) ||
+                        (o.trackingId && o.trackingId.toLowerCase().includes(q)) ||
+                        (o.customer && o.customer.toLowerCase().includes(q)) ||
+                        (o.address && o.address.toLowerCase().includes(q)) ||
+                        (o.riderName && o.riderName.toLowerCase().includes(q)) ||
+                        (o.currentCheckpoint && o.currentCheckpoint.toLowerCase().includes(q));
+                      return matchesStage && matchesSearch;
+                    })
+                    .map((o) => {
+                      const stageObj = TRACKING_STAGES.find(s => s.key === (o.trackingStage || "placed")) || TRACKING_STAGES[0];
+                      const stepIndex = TRACKING_STAGES.findIndex(s => s.key === (o.trackingStage || "placed"));
+                      const progressPct = Math.round(((stepIndex + 1) / TRACKING_STAGES.length) * 100);
+
+                      return (
+                        <tr key={o.id}>
+                          <td>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                              <b style={{ color: "#244b14" }}>{o.id}</b>
+                              <span style={{ fontSize: "11px", color: "#627757", fontFamily: "monospace", fontWeight: 700 }}>
+                                {o.trackingId || `GB-TRK-${o.id.replace(/[^0-9]/g, '')}`}
+                              </span>
+                              <button
+                                type="button"
+                                className="copy-addr-btn"
+                                style={{ marginTop: "4px", padding: "2px 7px", fontSize: "10px" }}
+                                onClick={() => {
+                                  const trackLink = `https://greenbasket-nu.vercel.app/#track=${o.id}`;
+                                  navigator.clipboard.writeText(trackLink);
+                                  triggerToast(`Customer tracking link copied for #${o.id}!`);
+                                }}
+                                title="Copy public tracking link for customer"
+                              >
+                                <Copy size={10} /> Copy Link
+                              </button>
+                            </div>
+                          </td>
+
+                          <td style={{ minWidth: "170px" }}>
+                            <div className="order-customer-cell">
+                              <b>{o.customer || o.customerName || "Customer"}</b>
+                              {(o.customerPhone || o.phone) && (
+                                <a href={`tel:${o.customerPhone || o.phone}`} className="customer-phone-link">
+                                  <Phone size={11} /> {o.customerPhone || o.phone}
+                                </a>
+                              )}
+                              <small style={{ color: "#4f6547", marginTop: "3px", lineHeight: "1.3" }}>
+                                <MapPin size={11} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                {o.address || "Standard Home Delivery"}
+                              </small>
+                            </div>
+                          </td>
+
+                          <td style={{ minWidth: "160px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                              <span className={`tracking-badge stage-${o.trackingStage || 'placed'}`}>
+                                <Truck size={11} /> {stageObj.label} ({progressPct}%)
+                              </span>
+                              <div style={{ height: "5px", background: "#e5ece0", borderRadius: "10px", overflow: "hidden", width: "100%" }}>
+                                <div style={{ height: "100%", width: `${progressPct}%`, background: stageObj.color, transition: "width 0.3s" }} />
+                              </div>
+                              <span style={{ fontSize: "10px", color: "#788a72" }}>
+                                {stageObj.labelBn}
+                              </span>
+                            </div>
+                          </td>
+
+                          <td style={{ minWidth: "160px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                              <b style={{ fontSize: "12px", color: "#1f3b14" }}>
+                                {o.riderName || "Pending Assignment"}
+                              </b>
+                              <small style={{ color: "#5a7051", fontSize: "11px" }}>
+                                {o.courierName || "GreenBasket Express"}
+                              </small>
+                              {o.riderPhone && (
+                                <a href={`tel:${o.riderPhone}`} style={{ fontSize: "11px", color: "#2d6318", fontWeight: 700, textDecoration: "none" }}>
+                                  <Phone size={10} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                  {o.riderPhone}
+                                </a>
+                              )}
+                            </div>
+                          </td>
+
+                          <td style={{ minWidth: "170px" }}>
+                            <div style={{ fontSize: "12px", color: "#254419", lineHeight: "1.4" }}>
+                              <span style={{ display: "inline-block", width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e", marginRight: "5px" }} />
+                              {o.currentCheckpoint || "Warehouse processing"}
+                            </div>
+                          </td>
+
+                          <td style={{ whiteSpace: "nowrap" }}>
+                            <span style={{ fontSize: "12px", fontWeight: 700, color: "#1e4710" }}>
+                              <Clock size={12} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+                              {o.estimatedDelivery || "Within 45 mins"}
+                            </span>
+                          </td>
+
+                          <td>
+                            {o.trackingStage !== "delivered" ? (
+                              <button
+                                type="button"
+                                className="advance-btn"
+                                onClick={() => advanceTrackingStage(o.id)}
+                                title="Advance to next delivery milestone"
+                              >
+                                Advance Stage <ArrowRight size={12} />
+                              </button>
+                            ) : (
+                              <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                <CheckCircle2 size={13} /> Completed
+                              </span>
+                            )}
+                          </td>
+
+                          <td>
+                            <div className="order-actions-cell">
+                              <button
+                                type="button"
+                                className="tracking-control-btn"
+                                onClick={() => openTrackingModal(o)}
+                                title="Open Full Tracking & Rider Controls"
+                              >
+                                <Settings size={12} /> Manage
+                              </button>
+                              <button
+                                type="button"
+                                className="share-notice-btn"
+                                onClick={() => openShareNoticeModal(o)}
+                                title="Share WhatsApp & SMS Tracking Notice to Customer"
+                              >
+                                <Send size={12} /> Share
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                 </tbody>
               </table>
             </div>
@@ -2636,48 +3392,290 @@ function App() {
               <div className="order-modal-body">
                 {/* Delivery Address & Customer Card */}
                 <div className="order-detail-card highlight-card">
-                  <h4 className="detail-card-title">
-                    <MapPin size={16} /> Delivery Address & Contact Info
-                  </h4>
-                  <div className="detail-card-content">
-                    <div className="info-row">
-                      <span className="info-label">Customer Name:</span>
-                      <strong>{selectedOrderForModal.customer || selectedOrderForModal.customerName}</strong>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label">Phone Number:</span>
-                      <span>
-                        {selectedOrderForModal.customerPhone ? (
-                          <a
-                            href={`tel:${selectedOrderForModal.customerPhone}`}
-                            style={{ color: "#2f5d1d", fontWeight: 700 }}
-                          >
-                            {selectedOrderForModal.customerPhone}
-                          </a>
-                        ) : (
-                          "Not provided"
-                        )}
-                      </span>
-                    </div>
-                    <div className="info-row delivery-addr-row">
-                      <span className="info-label">Delivery Address:</span>
-                      <div className="delivery-addr-value">
-                        <p>{selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || "Standard Home Delivery"}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <h4 className="detail-card-title" style={{ margin: 0 }}>
+                      <MapPin size={16} /> Delivery Address & Contact Info
+                    </h4>
+                    <button
+                      type="button"
+                      className="copy-addr-btn"
+                      onClick={() => {
+                        if (!isEditingContact) {
+                          setEditCustomerName(selectedOrderForModal.customer || selectedOrderForModal.customerName || "");
+                          setEditCustomerPhone(selectedOrderForModal.customerPhone || selectedOrderForModal.phone || "");
+                          setEditAddress(selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || "");
+                          setEditNotes(selectedOrderForModal.notes || "");
+                        }
+                        setIsEditingContact(!isEditingContact);
+                      }}
+                      style={{ background: isEditingContact ? "#edf2e8" : "#fff" }}
+                      title="Edit Customer Name, Phone & Address"
+                    >
+                      {isEditingContact ? "Cancel Edit" : <><Pencil size={11} /> Edit Contact Info</>}
+                    </button>
+                  </div>
+
+                  {isEditingContact ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSaveOrderContact(selectedOrderForModal.id);
+                      }}
+                      style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+                    >
+                      <div>
+                        <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#44593c", marginBottom: "4px" }}>
+                          Customer Name:
+                        </label>
+                        <input
+                          type="text"
+                          value={editCustomerName}
+                          onChange={(e) => setEditCustomerName(e.target.value)}
+                          required
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: "8px", border: "1px solid #c2d5ba", fontSize: "13px" }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#44593c", marginBottom: "4px" }}>
+                          Phone Number:
+                        </label>
+                        <input
+                          type="text"
+                          value={editCustomerPhone}
+                          onChange={(e) => setEditCustomerPhone(e.target.value)}
+                          placeholder="+880 1712-345678"
+                          required
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: "8px", border: "1px solid #c2d5ba", fontSize: "13px" }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#44593c", marginBottom: "4px" }}>
+                          Delivery Address:
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={editAddress}
+                          onChange={(e) => setEditAddress(e.target.value)}
+                          placeholder="House/Street, Area, City"
+                          required
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: "8px", border: "1px solid #c2d5ba", fontSize: "13px", resize: "vertical" }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#44593c", marginBottom: "4px" }}>
+                          Delivery Notes / Instructions:
+                        </label>
+                        <input
+                          type="text"
+                          value={editNotes}
+                          onChange={(e) => setEditNotes(e.target.value)}
+                          placeholder="e.g. Please call before delivery"
+                          style={{ width: "100%", padding: "7px 10px", borderRadius: "8px", border: "1px solid #c2d5ba", fontSize: "13px" }}
+                        />
+                      </div>
+
+                      <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                        <button
+                          type="submit"
+                          className="primary"
+                          style={{ padding: "6px 14px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "5px" }}
+                        >
+                          <CheckCircle2 size={13} /> Save Changes
+                        </button>
                         <button
                           type="button"
-                          className="copy-addr-btn"
-                          onClick={() => {
-                            navigator.clipboard.writeText(
-                              selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || ""
-                            );
-                            triggerToast("Delivery address copied to clipboard!");
-                          }}
+                          className="btn btn-secondary"
+                          onClick={() => setIsEditingContact(false)}
+                          style={{ padding: "6px 12px", fontSize: "12px" }}
                         >
-                          <Copy size={12} /> Copy Address
+                          Cancel
                         </button>
                       </div>
+                    </form>
+                  ) : (
+                    <div className="detail-card-content">
+                      <div className="info-row">
+                        <span className="info-label">Customer Name:</span>
+                        <strong>{selectedOrderForModal.customer || selectedOrderForModal.customerName}</strong>
+                      </div>
+                      <div className="info-row">
+                        <span className="info-label">Phone Number:</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {selectedOrderForModal.customerPhone || selectedOrderForModal.phone ? (
+                            <>
+                              <a
+                                href={`tel:${selectedOrderForModal.customerPhone || selectedOrderForModal.phone}`}
+                                style={{ color: "#2f5d1d", fontWeight: 700, textDecoration: "none" }}
+                              >
+                                {selectedOrderForModal.customerPhone || selectedOrderForModal.phone}
+                              </a>
+                              <button
+                                type="button"
+                                className="copy-addr-btn"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(selectedOrderForModal.customerPhone || selectedOrderForModal.phone || "");
+                                  triggerToast("Phone number copied!");
+                                }}
+                              >
+                                <Copy size={11} /> Copy
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{ color: "#8a9684" }}>Not provided</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="info-row delivery-addr-row">
+                        <span className="info-label">Delivery Address:</span>
+                        <div className="delivery-addr-value">
+                          <p>{selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || "Standard Home Delivery"}</p>
+                          <button
+                            type="button"
+                            className="copy-addr-btn"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                selectedOrderForModal.address || selectedOrderForModal.deliveryAddress || ""
+                              );
+                              triggerToast("Delivery address copied to clipboard!");
+                            }}
+                          >
+                            <Copy size={12} /> Copy Address
+                          </button>
+                        </div>
+                      </div>
+                      {selectedOrderForModal.notes && (
+                        <div className="info-row">
+                          <span className="info-label">Delivery Notes:</span>
+                          <span style={{ fontStyle: "italic", color: "#3e5238" }}>
+                            {selectedOrderForModal.notes}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Delivery Tracking Stepper & Logistics Card */}
+                <div className="order-detail-card" style={{ border: "1px solid #bfdbfe", background: "#f8faff" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                    <h4 className="detail-card-title" style={{ margin: 0, color: "#1e40af" }}>
+                      <Truck size={16} /> Live Delivery Tracking & Milestone Control
+                    </h4>
+                    <div style={{ display: "flex", gap: "6px" }}>
+                      <button
+                        type="button"
+                        className="tracking-control-btn"
+                        onClick={() => openTrackingModal(selectedOrderForModal)}
+                        style={{ background: "#eff6ff", borderColor: "#bfdbfe", color: "#1d4ed8" }}
+                      >
+                        <Settings size={12} /> Manage Logistics
+                      </button>
+                      <button
+                        type="button"
+                        className="share-notice-btn"
+                        onClick={() => openShareNoticeModal(selectedOrderForModal)}
+                      >
+                        <Send size={12} /> Share Notice
+                      </button>
                     </div>
                   </div>
+
+                  {/* 5-Step Milestone Stepper */}
+                  <div style={{ margin: "16px 0 20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+                      {TRACKING_STAGES.map((st, idx) => {
+                        const currentStageIdx = TRACKING_STAGES.findIndex(s => s.key === (selectedOrderForModal.trackingStage || "placed"));
+                        const isCompleted = idx < currentStageIdx;
+                        const isCurrent = idx === currentStageIdx;
+
+                        return (
+                          <div
+                            key={st.key}
+                            onClick={() => updateTrackingStage(selectedOrderForModal.id, st.key)}
+                            style={{
+                              padding: "10px 8px",
+                              borderRadius: "10px",
+                              textAlign: "center",
+                              cursor: "pointer",
+                              border: isCurrent ? `2px solid ${st.color}` : (isCompleted ? "1px solid #86efac" : "1px solid #e2e8f0"),
+                              background: isCurrent ? st.bg : (isCompleted ? "#f0fdf4" : "#ffffff"),
+                              boxShadow: isCurrent ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                              transition: "all 0.15s"
+                            }}
+                            title={`Click to set status to ${st.label}`}
+                          >
+                            <div style={{
+                              width: "22px",
+                              height: "22px",
+                              borderRadius: "50%",
+                              margin: "0 auto 4px",
+                              display: "grid",
+                              placeItems: "center",
+                              fontSize: "10px",
+                              fontWeight: 800,
+                              background: isCurrent ? st.color : (isCompleted ? "#16a34a" : "#cbd5e1"),
+                              color: "#fff"
+                            }}>
+                              {isCompleted ? "✓" : idx + 1}
+                            </div>
+                            <strong style={{ display: "block", fontSize: "11px", color: isCurrent ? st.color : "#334155" }}>
+                              {st.label}
+                            </strong>
+                            <small style={{ display: "block", fontSize: "9px", color: "#64748b", marginTop: "2px" }}>
+                              {st.labelBn}
+                            </small>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Logistics Summary Details */}
+                  <div style={{ background: "#ffffff", borderRadius: "10px", padding: "12px", border: "1px solid #e2e8f0", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", fontSize: "12px" }}>
+                    <div>
+                      <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 700 }}>TRACKING NUMBER</span>
+                      <b style={{ color: "#1e3a8a", fontFamily: "monospace", fontSize: "13px" }}>
+                        {selectedOrderForModal.trackingId || `GB-TRK-${selectedOrderForModal.id.replace(/[^0-9]/g, '')}`}
+                      </b>
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 700 }}>ESTIMATED DELIVERY</span>
+                      <b style={{ color: "#166534" }}>
+                        <Clock size={11} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                        {selectedOrderForModal.estimatedDelivery || "Within 45 mins"}
+                      </b>
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 700 }}>ASSIGNED RIDER</span>
+                      <b style={{ color: "#0f172a" }}>{selectedOrderForModal.riderName || "Pending Assignment"}</b>
+                      {selectedOrderForModal.riderPhone && (
+                        <a href={`tel:${selectedOrderForModal.riderPhone}`} style={{ display: "block", color: "#15803d", fontSize: "11px", fontWeight: 600 }}>
+                          {selectedOrderForModal.riderPhone}
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b", display: "block", fontSize: "10px", fontWeight: 700 }}>CURRENT CHECKPOINT</span>
+                      <span style={{ color: "#334155", fontWeight: 600 }}>
+                        {selectedOrderForModal.currentCheckpoint || "Processing at Central Warehouse"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedOrderForModal.trackingStage !== "delivered" && (
+                    <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className="advance-btn"
+                        onClick={() => advanceTrackingStage(selectedOrderForModal.id)}
+                      >
+                        Advance to Next Milestone <ArrowRight size={13} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Payment & Delivery Status Card */}
@@ -2833,6 +3831,300 @@ function App() {
                 >
                   Done
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DEDICATED TRACKING & LOGISTICS MANAGEMENT MODAL */}
+        {trackingModalOrder && (
+          <div className="order-modal-backdrop" onClick={() => setTrackingModalOrder(null)}>
+            <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "620px" }}>
+              <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1b3d12, #295b1b)" }}>
+                <div className="order-modal-title">
+                  <span className="modal-eyebrow" style={{ color: "#bbf7d0" }}>LIVE DELIVERY LOGISTICS CONTROL</span>
+                  <h3 style={{ color: "#fff" }}>Tracking Manager: #{trackingModalOrder.id}</h3>
+                  <small style={{ color: "#dcfce7" }}>Customer: {trackingModalOrder.customer}</small>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setTrackingModalOrder(null)}
+                  style={{ color: "#fff" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="order-modal-body" style={{ maxHeight: "78vh", overflowY: "auto" }}>
+                {/* 5-Step Stage Selector */}
+                <div className="tracking-stepper-container">
+                  <span className="tracking-stepper-title">
+                    <span>Select Milestone Stage</span>
+                    <small style={{ color: "#64748b", fontWeight: 600 }}>Click to set immediate status</small>
+                  </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px" }}>
+                    {TRACKING_STAGES.map((st, idx) => {
+                      const isCurrent = trackingFormData.trackingStage === st.key;
+                      return (
+                        <div
+                          key={st.key}
+                          onClick={() => setTrackingFormData({ ...trackingFormData, trackingStage: st.key })}
+                          style={{
+                            padding: "10px 6px",
+                            borderRadius: "10px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            border: isCurrent ? `2px solid ${st.color}` : "1px solid #cbd5e1",
+                            background: isCurrent ? st.bg : "#ffffff",
+                            boxShadow: isCurrent ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+                            transition: "all 0.15s"
+                          }}
+                        >
+                          <div style={{
+                            width: "22px",
+                            height: "22px",
+                            borderRadius: "50%",
+                            margin: "0 auto 4px",
+                            display: "grid",
+                            placeItems: "center",
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            background: isCurrent ? st.color : "#94a3b8",
+                            color: "#fff"
+                          }}>
+                            {idx + 1}
+                          </div>
+                          <b style={{ display: "block", fontSize: "11px", color: isCurrent ? st.color : "#334155" }}>
+                            {st.label}
+                          </b>
+                          <small style={{ fontSize: "9px", color: "#64748b" }}>{st.labelBn}</small>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Logistics Configuration Form */}
+                <form onSubmit={handleSaveTrackingModal} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Tracking Number / Waybill ID:
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingFormData.trackingId}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, trackingId: e.target.value })}
+                        required
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", fontFamily: "monospace", fontWeight: 700 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Delivery Partner / Courier:
+                      </label>
+                      <select
+                        value={trackingFormData.courierName}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, courierName: e.target.value })}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                      >
+                        <option value="GreenBasket Express">GreenBasket Express (Own Fleet)</option>
+                        <option value="Pathao Express">Pathao Express</option>
+                        <option value="Steadfast Courier">Steadfast Courier</option>
+                        <option value="RedX Logistics">RedX Logistics</option>
+                        <option value="Paperfly">Paperfly</option>
+                        <option value="In-house Delivery Rider">In-house Delivery Rider</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Assigned Rider Name:
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingFormData.riderName}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, riderName: e.target.value })}
+                        placeholder="e.g. Karim Mia"
+                        required
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Rider Contact Phone:
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingFormData.riderPhone}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, riderPhone: e.target.value })}
+                        placeholder="+880 1798-765432"
+                        required
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Estimated Delivery Time:
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingFormData.estimatedDelivery}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, estimatedDelivery: e.target.value })}
+                        placeholder="e.g. Today within 45 mins"
+                        required
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                        Current Checkpoint Location:
+                      </label>
+                      <input
+                        type="text"
+                        value={trackingFormData.currentCheckpoint}
+                        onChange={(e) => setTrackingFormData({ ...trackingFormData, currentCheckpoint: e.target.value })}
+                        placeholder="e.g. Dhanmondi Hub - Out with rider"
+                        required
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Add Checkpoint Note to Customer Timeline (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={trackingFormData.customNote}
+                      onChange={(e) => setTrackingFormData({ ...trackingFormData, customNote: e.target.value })}
+                      placeholder="e.g. Rider arrived at customer premises"
+                      style={{ width: "100%", padding: "8px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
+                    />
+                  </div>
+
+                  {/* Tracking Timeline Log */}
+                  <div style={{ marginTop: "4px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "6px" }}>
+                      Live Activity Checkpoints ({trackingModalOrder.trackingTimeline?.length || 0})
+                    </span>
+                    <div className="tracking-timeline-box">
+                      {(trackingModalOrder.trackingTimeline || []).map((ev, i) => (
+                        <div key={i} className="timeline-event">
+                          <div className="timeline-bullet">
+                            <CheckCircle2 size={13} />
+                          </div>
+                          <div className="timeline-content">
+                            <div className="timeline-title-row">
+                              <span className="timeline-event-title">{ev.title}</span>
+                              <span className="timeline-event-time">{ev.time}</span>
+                            </div>
+                            <p className="timeline-event-note">{ev.note}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                    <button
+                      type="button"
+                      className="copy-addr-btn"
+                      onClick={() => {
+                        const trackLink = `https://greenbasket-nu.vercel.app/#track=${trackingModalOrder.id}`;
+                        navigator.clipboard.writeText(trackLink);
+                        triggerToast("Customer tracking link copied to clipboard!");
+                      }}
+                    >
+                      <Copy size={12} /> Copy Customer Tracking Link
+                    </button>
+
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setTrackingModalOrder(null)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="primary"
+                        style={{ padding: "8px 18px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                      >
+                        <CheckCircle2 size={14} /> Save & Broadcast Updates
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SHARE NOTIFICATION MODAL (WHATSAPP / SMS) */}
+        {shareNoticeOrder && (
+          <div className="order-modal-backdrop" onClick={() => setShareNoticeOrder(null)}>
+            <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "520px" }}>
+              <div className="order-modal-head" style={{ background: "#15803d" }}>
+                <div className="order-modal-title">
+                  <span className="modal-eyebrow" style={{ color: "#dcfce7" }}>CUSTOMER NOTIFICATION SHARE</span>
+                  <h3 style={{ color: "#fff" }}>Send Tracking Notice: #{shareNoticeOrder.id}</h3>
+                  <small style={{ color: "#f0fdf4" }}>Recipient: {shareNoticeOrder.customer} ({shareNoticeOrder.customerPhone || shareNoticeOrder.phone})</small>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setShareNoticeOrder(null)}
+                  style={{ color: "#fff" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="order-modal-body">
+                <p style={{ margin: "0 0 12px", fontSize: "13px", color: "#334155", lineHeight: "1.5" }}>
+                  Notify the customer directly via WhatsApp or SMS with their real-time parcel tracking link and delivery status.
+                </p>
+
+                <div style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "10px", padding: "14px", marginBottom: "16px", fontSize: "13px", lineHeight: "1.6", color: "#1e293b", fontFamily: "sans-serif" }}>
+                  <b>GreenBasket Order Update:</b><br />
+                  Hello {shareNoticeOrder.customer}, your fresh grocery order #{shareNoticeOrder.id} is currently <b>{TRACKING_STAGES.find(s => s.key === shareNoticeOrder.trackingStage)?.label || shareNoticeOrder.status}</b> ({shareNoticeOrder.currentCheckpoint || 'In transit'}).<br />
+                  Estimated Delivery: {shareNoticeOrder.estimatedDelivery || 'Soon'}.<br />
+                  Rider: {shareNoticeOrder.riderName || 'GreenBasket Fleet'} ({shareNoticeOrder.riderPhone || 'In transit'}).<br />
+                  👉 Track your delivery live: https://greenbasket-nu.vercel.app/#track={shareNoticeOrder.id}
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    className="copy-addr-btn"
+                    onClick={() => {
+                      const msg = `GreenBasket Order Update:\nHello ${shareNoticeOrder.customer}, your fresh grocery order #${shareNoticeOrder.id} is currently ${TRACKING_STAGES.find(s => s.key === shareNoticeOrder.trackingStage)?.label || shareNoticeOrder.status} (${shareNoticeOrder.currentCheckpoint || 'In transit'}).\nEstimated Delivery: ${shareNoticeOrder.estimatedDelivery || 'Soon'}.\n👉 Track live: https://greenbasket-nu.vercel.app/#track=${shareNoticeOrder.id}`;
+                      navigator.clipboard.writeText(msg);
+                      triggerToast("Notice text copied to clipboard!");
+                    }}
+                  >
+                    <Copy size={13} /> Copy Message
+                  </button>
+
+                  <a
+                    href={`https://wa.me/${(shareNoticeOrder.customerPhone || shareNoticeOrder.phone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`GreenBasket Order Update:\nHello ${shareNoticeOrder.customer}, your fresh grocery order #${shareNoticeOrder.id} is currently ${TRACKING_STAGES.find(s => s.key === shareNoticeOrder.trackingStage)?.label || shareNoticeOrder.status} (${shareNoticeOrder.currentCheckpoint || 'In transit'}).\nEstimated Delivery: ${shareNoticeOrder.estimatedDelivery || 'Soon'}.\n👉 Track live: https://greenbasket-nu.vercel.app/#track=${shareNoticeOrder.id}`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="share-notice-btn"
+                    style={{ textDecoration: "none", padding: "8px 16px", fontSize: "12px" }}
+                  >
+                    <Send size={13} /> Open WhatsApp
+                  </a>
+                </div>
               </div>
             </div>
           </div>

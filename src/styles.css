@@ -2128,3 +2128,345 @@ footer {
   background: #f7faf4;
   border-top: 1px solid #e1ebd9;
 }
+
+/* ==========================================
+   DELIVERY TRACKING & LOGISTICS SYSTEM STYLES
+   ========================================== */
+.tracking-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tracking-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e1ebd9;
+  border-radius: 14px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.tracking-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.tracking-kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.tracking-kpi-info h4 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a3411;
+}
+
+.tracking-kpi-info span {
+  font-size: 12px;
+  color: #697a61;
+  font-weight: 600;
+}
+
+/* Tracking Badges */
+.tracking-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.stage-placed {
+  background: #e8f1fd;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.stage-preparing {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.stage-picked_up {
+  background: #f3e8ff;
+  color: #6b21a8;
+  border: 1px solid #d8b4fe;
+}
+
+.stage-on_the_way {
+  background: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.stage-delivered {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.stage-cancelled {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Stepper Component */
+.tracking-stepper-container {
+  background: #ffffff;
+  border: 1px solid #e1ebd9;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.tracking-stepper-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #1d3e14;
+}
+
+.tracking-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: 10px 0;
+}
+
+.stepper-progress-line {
+  position: absolute;
+  top: 25px;
+  left: 30px;
+  right: 30px;
+  height: 4px;
+  background: #e5ece0;
+  z-index: 1;
+}
+
+.stepper-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+  transition: width 0.35s ease;
+}
+
+.stepper-node {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  min-width: 70px;
+}
+
+.stepper-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 800;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  color: #64748b;
+  transition: all 0.2s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.stepper-node.completed .stepper-circle {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #ffffff;
+}
+
+.stepper-node.active .stepper-circle {
+  background: #f97316;
+  border-color: #f97316;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.25);
+  animation: pulse-ring 1.8s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+.stepper-label {
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  max-width: 90px;
+  line-height: 1.25;
+}
+
+.stepper-label-bn {
+  display: block;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* Timeline updates */
+.tracking-timeline-box {
+  background: #f9fbf7;
+  border: 1px solid #e2ebd9;
+  border-radius: 10px;
+  padding: 14px 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.timeline-event {
+  display: flex;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 14px;
+}
+
+.timeline-event:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-event::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 20px;
+  bottom: 0;
+  width: 2px;
+  background: #d8e5ce;
+}
+
+.timeline-event:last-child::before {
+  display: none;
+}
+
+.timeline-bullet {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e3f2dc;
+  color: #296014;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.timeline-event-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a3211;
+}
+
+.timeline-event-time {
+  font-size: 10px;
+  color: #798b73;
+}
+
+.timeline-event-note {
+  font-size: 11px;
+  color: #4f6147;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Action button styles */
+.advance-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #276214;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.advance-btn:hover {
+  background: #1e4d0f;
+  transform: translateY(-1px);
+}
+
+.tracking-control-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #eef6ea;
+  color: #245512;
+  border: 1px solid #c8ddbf;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tracking-control-btn:hover {
+  background: #dfefd7;
+  border-color: #aed19f;
+}
+
+.share-notice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #25d366;
+  color: #ffffff;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.share-notice-btn:hover {
+  opacity: 0.9;
+}
