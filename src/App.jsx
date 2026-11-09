@@ -751,15 +751,7 @@ function App() {
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupRole, setSignupRole] = useState("Store Manager");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [signupError, setSignupError] = useState("");
-  const [signupSuccess, setSignupSuccess] = useState("");
-  const [isSigningUp, setIsSigningUp] = useState(false);
+
 
   // Products State
   const [products, setProducts] = useState(() => {
@@ -1170,60 +1162,7 @@ function App() {
     }, 350);
   }
 
-  function handleSignUp(e) {
-    e.preventDefault();
-    setSignupError("");
-    setSignupSuccess("");
 
-    if (!signupName.trim() || !signupEmail.trim() || !signupPassword) {
-      setSignupError("Please fill in all required fields.");
-      return;
-    }
-    if (signupPassword.length < 6) {
-      setSignupError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (signupPassword !== signupConfirmPassword) {
-      setSignupError("Passwords do not match! Please check again.");
-      return;
-    }
-
-    const emailClean = signupEmail.trim().toLowerCase();
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === emailClean);
-    if (existing) {
-      setSignupError("An admin account with this email already exists! Please sign in.");
-      return;
-    }
-
-    setIsSigningUp(true);
-
-    setTimeout(() => {
-      const newUser = {
-        name: signupName.trim(),
-        email: emailClean,
-        password: signupPassword,
-        role: signupRole || "Store Manager"
-      };
-
-      const updated = [...registeredUsers, newUser];
-      setRegisteredUsers(updated);
-
-      const userSession = {
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role
-      };
-
-      setSignupSuccess("Admin account created successfully! Redirecting...");
-
-      setTimeout(() => {
-        setCurrentUser(userSession);
-        localStorage.setItem("greenbasket_auth", JSON.stringify(userSession));
-        setIsSigningUp(false);
-        triggerToast("Admin account created & signed in!");
-      }, 700);
-    }, 400);
-  }
 
   function fillDemoCredentials() {
     setLoginEmail("admin@greenbasket.com");
@@ -2156,243 +2095,78 @@ function App() {
             </div>
           </div>
 
-          <div className="auth-tab-switch">
-            <button
-              type="button"
-              className={authMode === "signin" ? "active" : ""}
-              onClick={() => {
-                setAuthMode("signin");
-                setLoginError("");
-                setSignupError("");
-                setSignupSuccess("");
-              }}
-            >
-              <LogIn size={15} /> Sign In
+          <div className="login-header" style={{ marginTop: "12px" }}>
+            <h3>Admin Sign In</h3>
+            <p>Enter your authorized credentials to access the GreenBasket management dashboard.</p>
+          </div>
+
+          {loginError && (
+            <div className="login-alert">
+              <AlertTriangle size={18} />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="login-form">
+            <label>
+              <span>Email Address</span>
+              <div className="input-with-icon">
+                <Mail size={17} />
+                <input
+                  type="email"
+                  required
+                  placeholder="admin@greenbasket.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                />
+              </div>
+            </label>
+
+            <label>
+              <span>Password</span>
+              <div className="input-with-icon">
+                <Lock size={17} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="eye-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </label>
+
+            <button type="submit" className="login-submit-btn" disabled={isLoggingIn}>
+              {isLoggingIn ? "Authenticating..." : "Sign In to Admin Panel"}
             </button>
-            <button
-              type="button"
-              className={authMode === "signup" ? "active" : ""}
-              onClick={() => {
-                setAuthMode("signup");
-                setLoginError("");
-                setSignupError("");
-                setSignupSuccess("");
-              }}
-            >
-              <UserPlus size={15} /> Sign Up
+          </form>
+
+          <div className="demo-credentials-box">
+            <div className="demo-head">
+              <ShieldCheck size={16} />
+              <span>Demo Admin Login:</span>
+            </div>
+            <div className="demo-details">
+              <div>Email: <b>admin@greenbasket.com</b></div>
+              <div>Password: <b>admin123</b></div>
+            </div>
+            <button type="button" className="demo-fill-btn" onClick={fillDemoCredentials}>
+              <UserCheck size={14} /> Auto-fill Demo Credentials
             </button>
           </div>
 
-          {authMode === "signin" && (
-            <>
-              <div className="login-header">
-                <h3>Admin Sign In</h3>
-                <p>Enter your credentials to access the store management dashboard.</p>
-              </div>
-
-              {loginError && (
-                <div className="login-alert">
-                  <AlertTriangle size={18} />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleLogin} className="login-form">
-                <label>
-                  <span>Email Address</span>
-                  <div className="input-with-icon">
-                    <Mail size={17} />
-                    <input
-                      type="email"
-                      required
-                      placeholder="admin@greenbasket.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <label>
-                  <span>Password</span>
-                  <div className="input-with-icon">
-                    <Lock size={17} />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="eye-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label="Toggle password visibility"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
-
-                <button type="submit" className="login-submit-btn" disabled={isLoggingIn}>
-                  {isLoggingIn ? "Authenticating..." : "Sign In to Admin Panel"}
-                </button>
-              </form>
-
-              <div className="demo-credentials-box">
-                <div className="demo-head">
-                  <ShieldCheck size={16} />
-                  <span>Demo Admin Login:</span>
-                </div>
-                <div className="demo-details">
-                  <div>Email: <b>admin@greenbasket.com</b></div>
-                  <div>Password: <b>admin123</b></div>
-                </div>
-                <button type="button" className="demo-fill-btn" onClick={fillDemoCredentials}>
-                  <UserCheck size={14} /> Auto-fill Demo Credentials
-                </button>
-              </div>
-
-              <div className="auth-bottom-switch">
-                <span>Don't have an admin account?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("signup");
-                    setLoginError("");
-                  }}
-                >
-                  Create one now (Sign Up)
-                </button>
-              </div>
-            </>
-          )}
-
-          {authMode === "signup" && (
-            <>
-              <div className="login-header">
-                <h3>Create Admin Account</h3>
-                <p>Register as a new store administrator to manage GreenBasket.</p>
-              </div>
-
-              {signupError && (
-                <div className="login-alert">
-                  <AlertTriangle size={18} />
-                  <span>{signupError}</span>
-                </div>
-              )}
-
-              {signupSuccess && (
-                <div className="login-alert success">
-                  <CheckCircle2 size={18} />
-                  <span>{signupSuccess}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSignUp} className="login-form">
-                <label>
-                  <span>Full Name *</span>
-                  <div className="input-with-icon">
-                    <User size={17} />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Sazib Ahmed"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <label>
-                  <span>Email Address *</span>
-                  <div className="input-with-icon">
-                    <Mail size={17} />
-                    <input
-                      type="email"
-                      required
-                      placeholder="manager@greenbasket.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <label>
-                  <span>Role / Title</span>
-                  <div className="input-with-icon">
-                    <Briefcase size={17} />
-                    <select
-                      value={signupRole}
-                      onChange={(e) => setSignupRole(e.target.value)}
-                      className="role-select"
-                    >
-                      <option value="Store Manager">Store Manager</option>
-                      <option value="Catalog Manager">Catalog Manager</option>
-                      <option value="Inventory Specialist">Inventory Specialist</option>
-                      <option value="Customer Lead">Customer Lead</option>
-                    </select>
-                  </div>
-                </label>
-
-                <label>
-                  <span>Password * (min. 6 characters)</span>
-                  <div className="input-with-icon">
-                    <Lock size={17} />
-                    <input
-                      type={showSignupPassword ? "text" : "password"}
-                      required
-                      minLength={6}
-                      placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="eye-toggle"
-                      onClick={() => setShowSignupPassword(!showSignupPassword)}
-                      aria-label="Toggle password visibility"
-                    >
-                      {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
-                </label>
-
-                <label>
-                  <span>Confirm Password *</span>
-                  <div className="input-with-icon">
-                    <Lock size={17} />
-                    <input
-                      type={showSignupPassword ? "text" : "password"}
-                      required
-                      minLength={6}
-                      placeholder="••••••••"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                    />
-                  </div>
-                </label>
-
-                <button type="submit" className="login-submit-btn" disabled={isSigningUp}>
-                  {isSigningUp ? "Creating Admin Account..." : "Sign Up & Access Dashboard"}
-                </button>
-              </form>
-
-              <div className="auth-bottom-switch">
-                <span>Already have an admin account?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("signin");
-                    setSignupError("");
-                    setSignupSuccess("");
-                  }}
-                >
-                  Sign In here
-                </button>
-              </div>
-            </>
-          )}
+          <div className="auth-bottom-switch" style={{ color: "#64748b", fontSize: "12px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+            <Lock size={13} style={{ color: "#166534" }} />
+            <span>Secure Admin Portal · Authorized Personnel Only</span>
+          </div>
         </div>
       </div>
     );
@@ -4379,27 +4153,20 @@ function App() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-                {/* Toggle 1: Allow Public Registration */}
+                {/* Security Feature: Public Sign Up Locked */}
                 <div className="admin-sec-toggle">
                   <div>
-                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Allow Public Admin Registration</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Admin Self-Registration</span>
+                      <span style={{ fontSize: "10px", fontWeight: 800, background: "#fee2e2", color: "#b91c1c", padding: "1px 6px", borderRadius: "10px" }}>DISABLED</span>
+                    </div>
                     <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
-                      When enabled, new users can sign up from the login screen.
+                      Public sign-up is locked on login screen. Admins can only be enrolled from this management panel.
                     </div>
                   </div>
-                  <label className="admin-switch" title="Toggle public self-registration">
-                    <input
-                      type="checkbox"
-                      checked={storeSettings.allowPublicSignup ?? true}
-                      onChange={(e) => {
-                        const updated = { ...storeSettings, allowPublicSignup: e.target.checked };
-                        setStoreSettings(updated);
-                        syncToGist(products, updated, orders, employees, registeredUsers);
-                        triggerToast(`Public admin registration ${e.target.checked ? "enabled" : "disabled"}`);
-                      }}
-                    />
-                    <span className="admin-slider" />
-                  </label>
+                  <div style={{ background: "#f1f5f9", padding: "4px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: 700, color: "#475569" }}>
+                    🔒 Protected
+                  </div>
                 </div>
 
                 {/* Toggle 2: Order Audio Alert */}
