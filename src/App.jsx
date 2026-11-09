@@ -325,6 +325,105 @@ const initialOrders = [
   }
 ];
 
+export const initialEmployees = [
+  {
+    id: "EMP-101",
+    name: "Karim Mia",
+    role: "Senior Delivery Rider",
+    department: "Logistics & Delivery",
+    phone: "+880 1798-765432",
+    email: "karim.rider@greenbasket.com",
+    salary: 380,
+    status: "On Delivery",
+    activeDeliveries: 2,
+    completedDeliveries: 148,
+    rating: 4.95,
+    joinDate: "Jan 12, 2026",
+    vehicleType: "Eco Electric Bike #12",
+    nid: "1994269123456"
+  },
+  {
+    id: "EMP-102",
+    name: "Rahim Ahmed",
+    role: "Warehouse Operations Lead",
+    department: "Warehouse & Inventory",
+    phone: "+880 1812-987654",
+    email: "rahim.wh@greenbasket.com",
+    salary: 450,
+    status: "Active",
+    activeDeliveries: 0,
+    completedDeliveries: 0,
+    rating: 4.90,
+    joinDate: "Feb 01, 2026",
+    vehicleType: "N/A",
+    nid: "1992269654321"
+  },
+  {
+    id: "EMP-103",
+    name: "Sohanur Rahman",
+    role: "Express Delivery Agent",
+    department: "Logistics & Delivery",
+    phone: "+880 1822-445566",
+    email: "sohan.delivery@greenbasket.com",
+    salary: 360,
+    status: "Active",
+    activeDeliveries: 1,
+    completedDeliveries: 112,
+    rating: 4.88,
+    joinDate: "Mar 10, 2026",
+    vehicleType: "GreenBasket Cargo Van #02",
+    nid: "1996269789012"
+  },
+  {
+    id: "EMP-104",
+    name: "Tanvir Hasan",
+    role: "City Express Rider",
+    department: "Logistics & Delivery",
+    phone: "+880 1711-223344",
+    email: "tanvir.rider@greenbasket.com",
+    salary: 360,
+    status: "Active",
+    activeDeliveries: 0,
+    completedDeliveries: 230,
+    rating: 5.0,
+    joinDate: "Jan 20, 2026",
+    vehicleType: "Honda 125cc Bike #05",
+    nid: "1995269345678"
+  },
+  {
+    id: "EMP-105",
+    name: "Farhana Akter",
+    role: "Quality Inspection & Packaging",
+    department: "Packaging & Quality",
+    phone: "+880 1912-334455",
+    email: "farhana.qc@greenbasket.com",
+    salary: 400,
+    status: "Active",
+    activeDeliveries: 0,
+    completedDeliveries: 0,
+    rating: 4.92,
+    joinDate: "Feb 15, 2026",
+    vehicleType: "N/A",
+    nid: "1997269567890"
+  },
+  {
+    id: "EMP-106",
+    name: "Sazib Khan",
+    role: "Operations & Store Manager",
+    department: "Management",
+    phone: "+880 1714-703406",
+    email: "sazib.manager@greenbasket.com",
+    salary: 650,
+    status: "Active",
+    activeDeliveries: 0,
+    completedDeliveries: 0,
+    rating: 5.0,
+    joinDate: "Jan 01, 2026",
+    vehicleType: "Company Vehicle",
+    nid: "1991269112233"
+  }
+];
+
 const defaultForm = {
   name: "",
   category: "Vegetables",
@@ -358,7 +457,7 @@ const defaultSettings = {
 const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
 const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"];
 
-const syncToGist = async (productsData, settingsData, ordersData) => {
+const syncToGist = async (productsData, settingsData, ordersData, employeesData) => {
   try {
     const token = GIST_TOKEN_PARTS.join("");
     const nowIso = new Date().toISOString();
@@ -367,7 +466,8 @@ const syncToGist = async (productsData, settingsData, ordersData) => {
       updatedAt: nowIso,
       products: productsData,
       settings: settingsData,
-      orders: ordersData || []
+      orders: ordersData || [],
+      employees: employeesData || []
     };
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
@@ -637,6 +737,32 @@ function App() {
   const [editAddress, setEditAddress] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
+  // Employee Control System States
+  const [employees, setEmployees] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_employees");
+      return saved ? JSON.parse(saved) : initialEmployees;
+    } catch {
+      return initialEmployees;
+    }
+  });
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [employeeDeptFilter, setEmployeeDeptFilter] = useState("All");
+  const [employeeStatusFilter, setEmployeeStatusFilter] = useState("All");
+  const [employeeModalOpen, setEmployeeModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [employeeForm, setEmployeeForm] = useState({
+    name: "",
+    role: "Delivery Rider",
+    department: "Logistics & Delivery",
+    phone: "",
+    email: "",
+    salary: 380,
+    status: "Active",
+    vehicleType: "",
+    nid: ""
+  });
+
   // Store Settings & Live Controls
   const [storeSettings, setStoreSettings] = useState(() => {
     try {
@@ -715,6 +841,10 @@ function App() {
               return merged;
             });
           }
+          if (Array.isArray(parsed.employees) && parsed.employees.length > 0) {
+            setEmployees(parsed.employees);
+            localStorage.setItem("greenbasket_employees", JSON.stringify(parsed.employees));
+          }
         }
       } catch (e) {}
     };
@@ -748,6 +878,13 @@ function App() {
     } catch (e) {}
   }, [storeSettings]);
 
+  // Persist employees to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("greenbasket_employees", JSON.stringify(employees));
+    } catch (e) {}
+  }, [employees]);
+
   // Broadcast changes across tabs & to storefront immediately + background cloud sync
   useEffect(() => {
     const payload = {
@@ -778,7 +915,7 @@ function App() {
 
     // Debounced background sync to Cloud Gist
     const debounceTimer = setTimeout(() => {
-      syncToGist(products, storeSettings, orders);
+      syncToGist(products, storeSettings, orders, employees);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
@@ -1387,7 +1524,7 @@ function App() {
     setOrders((old) => {
       const next = old.map((o) => (o.id === orderId ? { ...o, ...updatedFields } : o));
       localStorage.setItem("greenbasket_orders", JSON.stringify(next));
-      syncToGist(products, storeSettings, next);
+      syncToGist(products, storeSettings, next, employees);
       return next;
     });
     if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
@@ -1395,6 +1532,106 @@ function App() {
     }
     setIsEditingContact(false);
     triggerToast(`Order #${orderId} customer contact & delivery address updated!`);
+  };
+
+  // --- EMPLOYEE CONTROL SYSTEM HANDLERS ---
+  const handleOpenAddEmployee = () => {
+    const nextId = "EMP-" + (100 + employees.length + 1);
+    setEditingEmployee(null);
+    setEmployeeForm({
+      id: nextId,
+      name: "",
+      role: "Delivery Rider",
+      department: "Logistics & Delivery",
+      phone: "",
+      email: "",
+      salary: 380,
+      status: "Active",
+      vehicleType: "Eco Electric Bike",
+      nid: ""
+    });
+    setEmployeeModalOpen(true);
+  };
+
+  const handleOpenEditEmployee = (emp) => {
+    setEditingEmployee(emp);
+    setEmployeeForm({
+      id: emp.id,
+      name: emp.name || "",
+      role: emp.role || "Delivery Rider",
+      department: emp.department || "Logistics & Delivery",
+      phone: emp.phone || "",
+      email: emp.email || "",
+      salary: emp.salary || 350,
+      status: emp.status || "Active",
+      vehicleType: emp.vehicleType || "",
+      nid: emp.nid || ""
+    });
+    setEmployeeModalOpen(true);
+  };
+
+  const handleSaveEmployee = (e) => {
+    e.preventDefault();
+    if (!employeeForm.name.trim()) {
+      triggerToast("Please enter employee name");
+      return;
+    }
+
+    if (editingEmployee) {
+      // Update existing
+      const updatedList = employees.map((emp) =>
+        emp.id === editingEmployee.id
+          ? {
+              ...emp,
+              ...employeeForm,
+              salary: Number(employeeForm.salary) || 0
+            }
+          : emp
+      );
+      setEmployees(updatedList);
+      localStorage.setItem("greenbasket_employees", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, updatedList);
+      triggerToast(`Employee '${employeeForm.name}' updated successfully!`);
+    } else {
+      // Create new
+      const newEmp = {
+        ...employeeForm,
+        id: employeeForm.id || ("EMP-" + (100 + employees.length + 1)),
+        salary: Number(employeeForm.salary) || 0,
+        activeDeliveries: 0,
+        completedDeliveries: 0,
+        rating: 5.0,
+        joinDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+      };
+      const updatedList = [newEmp, ...employees];
+      setEmployees(updatedList);
+      localStorage.setItem("greenbasket_employees", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, updatedList);
+      triggerToast(`New employee '${newEmp.name}' added to roster!`);
+    }
+
+    setEmployeeModalOpen(false);
+  };
+
+  const handleDeleteEmployee = (empId) => {
+    const emp = employees.find((e) => e.id === empId);
+    if (window.confirm(`Are you sure you want to remove ${emp ? emp.name : 'this employee'} from system?`)) {
+      const updatedList = employees.filter((e) => e.id !== empId);
+      setEmployees(updatedList);
+      localStorage.setItem("greenbasket_employees", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, updatedList);
+      triggerToast("Employee removed from staff records");
+    }
+  };
+
+  const handleQuickStatusToggle = (empId, newStatus) => {
+    const updatedList = employees.map((e) =>
+      e.id === empId ? { ...e, status: newStatus } : e
+    );
+    setEmployees(updatedList);
+    localStorage.setItem("greenbasket_employees", JSON.stringify(updatedList));
+    syncToGist(products, storeSettings, orders, updatedList);
+    triggerToast(`Duty status set to '${newStatus}'`);
   };
 
   function deleteOrder(orderId) {
@@ -1501,6 +1738,21 @@ function App() {
       (o.paymentMethod && o.paymentMethod.toLowerCase().includes(q)) ||
       (o.items && (typeof o.items === "string" ? o.items : JSON.stringify(o.items)).toLowerCase().includes(q));
     return matchesStatus && matchesPayment && matchesSearch;
+  });
+
+  const filteredEmployees = employees.filter((emp) => {
+    const q = employeeSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      (emp.name && emp.name.toLowerCase().includes(q)) ||
+      (emp.phone && emp.phone.toLowerCase().includes(q)) ||
+      (emp.email && emp.email.toLowerCase().includes(q)) ||
+      (emp.id && emp.id.toLowerCase().includes(q)) ||
+      (emp.vehicleType && emp.vehicleType.toLowerCase().includes(q)) ||
+      (emp.role && emp.role.toLowerCase().includes(q));
+    const matchDept = employeeDeptFilter === "All" || emp.department === employeeDeptFilter;
+    const matchStatus = employeeStatusFilter === "All" || emp.status === employeeStatusFilter;
+    return matchSearch && matchDept && matchStatus;
   });
 
   const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
@@ -1846,6 +2098,15 @@ function App() {
             <Truck /> Delivery Tracking
           </button>
           <button
+            className={tab === "employees" ? "active" : ""}
+            onClick={() => {
+              setTab("employees");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Users /> Employee Control
+          </button>
+          <button
             className={tab === "analytics" ? "active" : ""}
             onClick={() => {
               setTab("analytics");
@@ -1960,6 +2221,13 @@ function App() {
             >
               <Truck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
               Delivery Tracking ({orders.filter(o => o.trackingStage !== 'delivered' && o.status !== 'Delivered').length})
+            </button>
+            <button
+              className={tab === "employees" ? "selected" : ""}
+              onClick={() => setTab("employees")}
+            >
+              <Users size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Employee Control ({employees.length})
             </button>
             <button
               className={tab === "analytics" ? "selected" : ""}
@@ -3003,6 +3271,276 @@ function App() {
           </div>
         )}
 
+        {/* TAB: EMPLOYEE & STAFF CONTROL SYSTEM */}
+        {tab === "employees" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "linear-gradient(135deg, #2b6118, #48892a)", display: "grid", placeItems: "center", color: "#fff", boxShadow: "0 2px 8px rgba(43,97,24,0.3)" }}>
+                    <Users size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#1e293b" }}>Employee & Staff Control Center</h3>
+                    <p style={{ margin: "3px 0 0", color: "#64748b", fontSize: "13px" }}>
+                      Manage delivery fleet riders, warehouse personnel, live duty status, and monthly payroll budget.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleOpenAddEmployee}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", boxShadow: "0 2px 8px rgba(43,97,24,0.25)" }}
+                >
+                  <UserPlus size={16} /> Add New Employee
+                </button>
+              </div>
+            </div>
+
+            {/* METRICS ROW */}
+            <div className="emp-metric-grid" style={{ marginTop: "24px" }}>
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon green">
+                  <Users size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">{employees.length}</div>
+                  <div className="emp-metric-label">Total Staff Roster</div>
+                  <div className="emp-metric-sub">Across all store operations</div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon orange">
+                  <Truck size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    {employees.filter(e => (e.role && e.role.toLowerCase().includes("rider")) || (e.department && e.department.toLowerCase().includes("delivery"))).length}
+                  </div>
+                  <div className="emp-metric-label">Delivery Fleet Riders</div>
+                  <div className="emp-metric-sub">
+                    {employees.filter(e => ((e.role && e.role.toLowerCase().includes("rider")) || (e.department && e.department.toLowerCase().includes("delivery"))) && (e.status === "Active" || e.status === "On Delivery")).length} active on the road
+                  </div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon blue">
+                  <Briefcase size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    {employees.filter(e => !((e.role && e.role.toLowerCase().includes("rider")) || (e.department && e.department.toLowerCase().includes("delivery")))).length}
+                  </div>
+                  <div className="emp-metric-label">Warehouse & Operations</div>
+                  <div className="emp-metric-sub">Packaging, QC & Management</div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon purple">
+                  <DollarSign size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    ${employees.reduce((acc, curr) => acc + (Number(curr.salary) || 0), 0).toLocaleString()}
+                  </div>
+                  <div className="emp-metric-label">Monthly Payroll</div>
+                  <div className="emp-metric-sub">Total staff salary budget</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SEARCH & FILTERS BAR */}
+            <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "16px 20px", marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ position: "relative", minWidth: "260px", flex: "1 1 280px" }}>
+                <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                <input
+                  type="text"
+                  placeholder="Search staff by name, phone, ID, or vehicle..."
+                  value={employeeSearch}
+                  onChange={(e) => setEmployeeSearch(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px 10px 38px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* DEPARTMENT FILTER */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Dept:</span>
+                {["All", "Logistics & Delivery", "Warehouse & Inventory", "Packaging & Quality", "Management"].map(dept => (
+                  <button
+                    key={dept}
+                    type="button"
+                    className={`emp-filter-chip ${employeeDeptFilter === dept ? "active" : ""}`}
+                    onClick={() => setEmployeeDeptFilter(dept)}
+                  >
+                    {dept === "Logistics & Delivery" ? "Logistics" : dept === "Warehouse & Inventory" ? "Warehouse" : dept === "Packaging & Quality" ? "Packaging" : dept}
+                  </button>
+                ))}
+              </div>
+
+              {/* STATUS FILTER */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Duty:</span>
+                <select
+                  value={employeeStatusFilter}
+                  onChange={(e) => setEmployeeStatusFilter(e.target.value)}
+                  style={{ padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", fontWeight: 600, background: "#ffffff", color: "#334155" }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Active">● Active / On Duty</option>
+                  <option value="On Delivery">⚡ On Delivery</option>
+                  <option value="On Leave">⛱ On Leave</option>
+                  <option value="Offline">○ Offline</option>
+                </select>
+              </div>
+            </div>
+
+            {/* EMPLOYEE DIRECTORY TABLE */}
+            <div className="orders-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <table className="orders-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "920px" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>EMPLOYEE</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ROLE & DEPT</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>DUTY STATUS</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CONTACT</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ASSIGNED VEHICLE</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>PERFORMANCE</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>SALARY</th>
+                    <th style={{ padding: "14px 16px", textAlign: "center", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredEmployees.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: "#64748b" }}>No staff members found</div>
+                        <p style={{ margin: "6px 0 0", fontSize: "13px" }}>Try adjusting your search keywords or active filters</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEmployees.map((emp) => {
+                      const initials = (emp.name || "GB").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+                      const statusClass = emp.status === "Active" ? "active" : emp.status === "On Delivery" ? "on_delivery" : emp.status === "On Leave" ? "on_leave" : "offline";
+                      return (
+                        <tr key={emp.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div className="employee-avatar">
+                                {initials}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>{emp.name}</div>
+                                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
+                                  <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", fontWeight: 600 }}>{emp.id}</span>
+                                  {emp.nid && (
+                                    <span style={{ fontSize: "10px", color: "#94a3b8", background: "#f1f5f9", padding: "1px 5px", borderRadius: "4px" }}>
+                                      NID: {emp.nid}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ fontSize: "12px", fontWeight: 600, color: "#334155" }}>{emp.department}</div>
+                            <div className="emp-role-badge">{emp.role}</div>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <select
+                              className={`emp-select-status ${statusClass}`}
+                              value={emp.status}
+                              onChange={(e) => handleQuickStatusToggle(emp.id, e.target.value)}
+                              title="Click to toggle live duty status"
+                            >
+                              <option value="Active">● Active / On Duty</option>
+                              <option value="On Delivery">⚡ On Delivery</option>
+                              <option value="On Leave">⛱ On Leave</option>
+                              <option value="Offline">○ Offline</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div>
+                              {emp.phone && (
+                                <a href={`tel:${emp.phone}`} className="emp-contact-link">
+                                  <Phone size={12} style={{ color: "#166534" }} /> {emp.phone}
+                                </a>
+                              )}
+                            </div>
+                            <div>
+                              {emp.email && (
+                                <a href={`mailto:${emp.email}`} className="emp-contact-link" style={{ marginTop: "2px", color: "#64748b" }}>
+                                  <Mail size={12} style={{ color: "#0284c7" }} /> {emp.email}
+                                </a>
+                              )}
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            {emp.vehicleType && emp.vehicleType !== "N/A" ? (
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "12px", color: "#1e293b", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px", border: "1px solid #e2e8f0" }}>
+                                <Truck size={12} style={{ color: "#2b6118" }} /> {emp.vehicleType}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: "12px", color: "#94a3b8" }}>N/A (Stationary)</span>
+                            )}
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, color: "#eab308" }}>
+                              ★ {emp.rating || "5.0"}
+                            </div>
+                            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                              {emp.completedDeliveries > 0 ? `${emp.completedDeliveries} completed` : `Joined ${emp.joinDate || "2026"}`}
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div className="emp-salary-pill">${Number(emp.salary || 0).toLocaleString()} /mo</div>
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+                              {emp.phone && (
+                                <a
+                                  href={`https://wa.me/${emp.phone.replace(/[^0-9]/g, "")}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="emp-action-btn whatsapp"
+                                  title="Chat on WhatsApp"
+                                >
+                                  <Send size={13} />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                className="emp-action-btn edit"
+                                onClick={() => handleOpenEditEmployee(emp)}
+                                title="Edit Staff Member"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="emp-action-btn delete"
+                                onClick={() => handleDeleteEmployee(emp.id)}
+                                title="Delete Staff Member"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
         {/* TAB 3: STORE ANALYTICS */}
         {tab === "analytics" && (
           <div className="orders" style={{ padding: "24px" }}>
@@ -3941,9 +4479,35 @@ function App() {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                     <div>
-                      <label style={{ display: "block", fontSize: "11px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
-                        Assigned Rider Name:
-                      </label>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                        <label style={{ fontSize: "11px", fontWeight: 700, color: "#334155" }}>
+                          Assigned Rider Name:
+                        </label>
+                        {employees.some(e => (e.role && e.role.toLowerCase().includes("rider")) || (e.department && e.department.toLowerCase().includes("delivery"))) && (
+                          <select
+                            style={{ fontSize: "10px", padding: "2px 6px", borderRadius: "4px", border: "1px solid #cbd5e1", background: "#f8fafc", color: "#166534", fontWeight: 600, cursor: "pointer" }}
+                            onChange={(e) => {
+                              const sel = employees.find(emp => emp.name === e.target.value);
+                              if (sel) {
+                                setTrackingFormData(prev => ({
+                                  ...prev,
+                                  riderName: sel.name,
+                                  riderPhone: sel.phone || prev.riderPhone
+                                }));
+                              }
+                            }}
+                          >
+                            <option value="">⚡ Select Staff Rider</option>
+                            {employees
+                              .filter(e => (e.role && e.role.toLowerCase().includes("rider")) || (e.department && e.department.toLowerCase().includes("delivery")))
+                              .map(r => (
+                                <option key={r.id} value={r.name}>
+                                  {r.name} ({r.status})
+                                </option>
+                              ))}
+                          </select>
+                        )}
+                      </div>
                       <input
                         type="text"
                         value={trackingFormData.riderName}
@@ -4126,6 +4690,192 @@ function App() {
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* EMPLOYEE ADD / EDIT MODAL */}
+        {employeeModalOpen && (
+          <div className="modal-backdrop" onClick={() => setEmployeeModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "560px", padding: "28px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "linear-gradient(135deg, #2b6118, #48892a)", display: "grid", placeItems: "center", color: "#fff" }}>
+                    <Users size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      {editingEmployee ? "Edit Employee Profile" : "Add New Employee"}
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      {editingEmployee ? `Update staff record for ${editingEmployee.id}` : "Enroll new team member into GreenBasket staff roster"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEmployeeModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEmployee} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={employeeForm.name}
+                    onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })}
+                    placeholder="e.g. Karim Mia"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Job Designation / Role *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={employeeForm.role}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, role: e.target.value })}
+                      placeholder="e.g. Delivery Rider"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Department *
+                    </label>
+                    <select
+                      value={employeeForm.department}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#fff", boxSizing: "border-box" }}
+                    >
+                      <option value="Logistics & Delivery">Logistics & Delivery</option>
+                      <option value="Warehouse & Inventory">Warehouse & Inventory</option>
+                      <option value="Packaging & Quality">Packaging & Quality</option>
+                      <option value="Management">Management</option>
+                      <option value="Customer Support">Customer Support</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Phone Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={employeeForm.phone}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })}
+                      placeholder="+880 1712-345678"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={employeeForm.email}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })}
+                      placeholder="employee@greenbasket.com"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Monthly Salary ($ USD)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={employeeForm.salary}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })}
+                      placeholder="380"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Duty Status
+                    </label>
+                    <select
+                      value={employeeForm.status}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, status: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#fff", boxSizing: "border-box" }}
+                    >
+                      <option value="Active">● Active / On Duty</option>
+                      <option value="On Delivery">⚡ On Delivery</option>
+                      <option value="On Leave">⛱ On Leave</option>
+                      <option value="Offline">○ Offline</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Assigned Vehicle / Asset
+                    </label>
+                    <input
+                      type="text"
+                      value={employeeForm.vehicleType}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, vehicleType: e.target.value })}
+                      placeholder="e.g. Eco Electric Bike #12"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      National ID (NID)
+                    </label>
+                    <input
+                      type="text"
+                      value={employeeForm.nid}
+                      onChange={(e) => setEmployeeForm({ ...employeeForm, nid: e.target.value })}
+                      placeholder="1994269123456"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() => setEmployeeModalOpen(false)}
+                    style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
+                  >
+                    {editingEmployee ? "Update Employee Profile" : "Save to Roster"}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
