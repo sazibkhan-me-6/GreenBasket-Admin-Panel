@@ -426,6 +426,74 @@ export const initialEmployees = [
   }
 ];
 
+export const initialCustomers = [
+  {
+    id: "CUST-1001",
+    name: "Sazib Ahmed",
+    phone: "+880 1712-345678",
+    email: "sazib.ahmed@gmail.com",
+    address: "House #24, Road #4, Dhanmondi, Dhaka",
+    status: "VIP",
+    totalOrders: 3,
+    totalSpent: 56.24,
+    lastOrderDate: "Nov 08, 2026",
+    notes: "Prefers morning home delivery. Regular weekly grocery buyer.",
+    joinedDate: "Oct 15, 2026"
+  },
+  {
+    id: "CUST-1002",
+    name: "Sarah Ahmed",
+    phone: "+880 1712-345678",
+    email: "sarah.ahmed@yahoo.com",
+    address: "House 24, Road 7, Dhanmondi, Dhaka",
+    status: "VIP",
+    totalOrders: 4,
+    totalSpent: 84.50,
+    lastOrderDate: "Nov 07, 2026",
+    notes: "Special interest in organic dairy and avocados.",
+    joinedDate: "Oct 18, 2026"
+  },
+  {
+    id: "CUST-1003",
+    name: "Rafiqul Islam",
+    phone: "+880 1819-876543",
+    email: "rafiq.islam@hotmail.com",
+    address: "Flat 4B, Green Tower, Gulshan-2, Dhaka",
+    status: "Active",
+    totalOrders: 2,
+    totalSpent: 38.20,
+    lastOrderDate: "Nov 07, 2026",
+    notes: "Requires call 15 mins prior to rider arrival.",
+    joinedDate: "Nov 01, 2026"
+  },
+  {
+    id: "CUST-1004",
+    name: "Tanzina Akter",
+    phone: "+880 1911-234890",
+    email: "tanzina.akter@gmail.com",
+    address: "Plot 15, Sector 4, Uttara, Dhaka",
+    status: "Active",
+    totalOrders: 1,
+    totalSpent: 12.80,
+    lastOrderDate: "Nov 06, 2026",
+    notes: "First time customer, paid via credit card.",
+    joinedDate: "Nov 06, 2026"
+  },
+  {
+    id: "CUST-1005",
+    name: "Kamal Hossain",
+    phone: "+880 1610-998877",
+    email: "kamal.hossain@gmail.com",
+    address: "Apt 2A, Rose Garden, Mirpur 10, Dhaka",
+    status: "Active",
+    totalOrders: 2,
+    totalSpent: 45.00,
+    lastOrderDate: "Nov 05, 2026",
+    notes: "Orders fresh fruits and superfoods regularly.",
+    joinedDate: "Oct 25, 2026"
+  }
+];
+
 const defaultForm = {
   name: "",
   category: "Vegetables",
@@ -525,7 +593,7 @@ const defaultSettings = {
 const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
 const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"];
 
-const syncToGist = async (productsData, settingsData, ordersData, employeesData, adminUsersData) => {
+const syncToGist = async (productsData, settingsData, ordersData, employeesData, adminUsersData, customersData) => {
   try {
     const token = GIST_TOKEN_PARTS.join("");
     const nowIso = new Date().toISOString();
@@ -536,7 +604,8 @@ const syncToGist = async (productsData, settingsData, ordersData, employeesData,
       settings: settingsData,
       orders: ordersData || [],
       employees: employeesData || [],
-      adminUsers: adminUsersData || []
+      adminUsers: adminUsersData || [],
+      customers: customersData || []
     };
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
@@ -798,6 +867,30 @@ function App() {
   const [editAddress, setEditAddress] = useState("");
   const [editNotes, setEditNotes] = useState("");
 
+  // Customer Control System States
+  const [customers, setCustomers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_customers");
+      return saved ? JSON.parse(saved) : initialCustomers;
+    } catch {
+      return initialCustomers;
+    }
+  });
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerStatusFilter, setCustomerStatusFilter] = useState("All");
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  const [viewOrdersCustomer, setViewOrdersCustomer] = useState(null);
+  const [customerForm, setCustomerForm] = useState({
+    id: "",
+    name: "",
+    phone: "",
+    email: "",
+    address: "",
+    status: "Active",
+    notes: ""
+  });
+
   // Employee Control System States
   const [employees, setEmployees] = useState(() => {
     try {
@@ -935,6 +1028,10 @@ function App() {
             setRegisteredUsers(parsed.adminUsers);
             localStorage.setItem("greenbasket_admin_users", JSON.stringify(parsed.adminUsers));
           }
+          if (Array.isArray(parsed.customers) && parsed.customers.length > 0) {
+            setCustomers(parsed.customers);
+            localStorage.setItem("greenbasket_customers", JSON.stringify(parsed.customers));
+          }
         }
       } catch (e) {}
     };
@@ -982,6 +1079,13 @@ function App() {
     } catch (e) {}
   }, [registeredUsers]);
 
+  // Persist customers to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("greenbasket_customers", JSON.stringify(customers));
+    } catch (e) {}
+  }, [customers]);
+
   // Broadcast changes across tabs & to storefront immediately + background cloud sync
   useEffect(() => {
     const payload = {
@@ -1012,7 +1116,7 @@ function App() {
 
     // Debounced background sync to Cloud Gist
     const debounceTimer = setTimeout(() => {
-      syncToGist(products, storeSettings, orders, employees, registeredUsers);
+      syncToGist(products, storeSettings, orders, employees, registeredUsers, customers);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
@@ -1568,7 +1672,7 @@ function App() {
     setOrders((old) => {
       const next = old.map((o) => (o.id === orderId ? { ...o, ...updatedFields } : o));
       localStorage.setItem("greenbasket_orders", JSON.stringify(next));
-      syncToGist(products, storeSettings, next, employees);
+      syncToGist(products, storeSettings, next, employees, registeredUsers, customers);
       return next;
     });
     if (selectedOrderForModal && selectedOrderForModal.id === orderId) {
@@ -1576,6 +1680,106 @@ function App() {
     }
     setIsEditingContact(false);
     triggerToast(`Order #${orderId} customer contact & delivery address updated!`);
+  };
+
+  // --- CUSTOMER CONTROL HANDLERS ---
+  const handleOpenAddCustomer = () => {
+    const nextId = "CUST-" + (1000 + customers.length + 1);
+    setEditingCustomer(null);
+    setCustomerForm({
+      id: nextId,
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      status: "Active",
+      notes: ""
+    });
+    setCustomerModalOpen(true);
+  };
+
+  const handleOpenEditCustomer = (cust) => {
+    setEditingCustomer(cust);
+    setCustomerForm({
+      id: cust.id,
+      name: cust.name || "",
+      phone: cust.phone || "",
+      email: cust.email || "",
+      address: cust.address || "",
+      status: cust.status || "Active",
+      notes: cust.notes || ""
+    });
+    setCustomerModalOpen(true);
+  };
+
+  const handleSaveCustomer = (e) => {
+    e.preventDefault();
+    if (!customerForm.name.trim()) {
+      triggerToast("Please enter customer name");
+      return;
+    }
+
+    if (editingCustomer) {
+      const updatedList = customers.map((c) =>
+        c.id === editingCustomer.id
+          ? {
+              ...c,
+              name: customerForm.name.trim(),
+              phone: customerForm.phone.trim(),
+              email: customerForm.email.trim(),
+              address: customerForm.address.trim(),
+              status: customerForm.status,
+              notes: customerForm.notes.trim()
+            }
+          : c
+      );
+      setCustomers(updatedList);
+      localStorage.setItem("greenbasket_customers", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, employees, registeredUsers, updatedList);
+      triggerToast(`Customer '${customerForm.name}' profile updated!`);
+    } else {
+      const newCust = {
+        id: customerForm.id || ("CUST-" + (1000 + customers.length + 1)),
+        name: customerForm.name.trim(),
+        phone: customerForm.phone.trim(),
+        email: customerForm.email.trim(),
+        address: customerForm.address.trim(),
+        status: customerForm.status || "Active",
+        notes: customerForm.notes.trim(),
+        totalOrders: 0,
+        totalSpent: 0,
+        lastOrderDate: "N/A",
+        joinedDate: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
+      };
+      const updatedList = [newCust, ...customers];
+      setCustomers(updatedList);
+      localStorage.setItem("greenbasket_customers", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, employees, registeredUsers, updatedList);
+      triggerToast(`New customer '${newCust.name}' registered!`);
+    }
+
+    setCustomerModalOpen(false);
+  };
+
+  const handleDeleteCustomer = (custId) => {
+    const cust = customers.find((c) => c.id === custId);
+    if (window.confirm(`Are you sure you want to remove ${cust ? cust.name : 'this customer'} from system?`)) {
+      const updatedList = customers.filter((c) => c.id !== custId);
+      setCustomers(updatedList);
+      localStorage.setItem("greenbasket_customers", JSON.stringify(updatedList));
+      syncToGist(products, storeSettings, orders, employees, registeredUsers, updatedList);
+      triggerToast("Customer record removed from database");
+    }
+  };
+
+  const handleToggleCustomerStatus = (custId, newStatus) => {
+    const updatedList = customers.map((c) =>
+      c.id === custId ? { ...c, status: newStatus } : c
+    );
+    setCustomers(updatedList);
+    localStorage.setItem("greenbasket_customers", JSON.stringify(updatedList));
+    syncToGist(products, storeSettings, orders, employees, registeredUsers, updatedList);
+    triggerToast(`Customer status updated to '${newStatus}'`);
   };
 
   // --- EMPLOYEE CONTROL SYSTEM HANDLERS ---
@@ -2051,6 +2255,19 @@ function App() {
     return matchSearch && matchRole;
   });
 
+  const filteredCustomers = customers.filter((c) => {
+    const q = customerSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.phone && c.phone.toLowerCase().includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.address && c.address.toLowerCase().includes(q)) ||
+      (c.id && c.id.toLowerCase().includes(q));
+    const matchStatus = customerStatusFilter === "All" || c.status === customerStatusFilter;
+    return matchSearch && matchStatus;
+  });
+
   const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
 
   const stats = [
@@ -2218,6 +2435,15 @@ function App() {
             }}
           >
             <ShoppingBag /> Customer Orders
+          </button>
+          <button
+            className={tab === "customers" ? "active" : ""}
+            onClick={() => {
+              setTab("customers");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <UserCheck /> Customer Control
           </button>
           <button
             className={tab === "tracking" ? "active" : ""}
@@ -2400,6 +2626,13 @@ function App() {
               onClick={() => setTab("orders")}
             >
               Customer Orders ({orders.length})
+            </button>
+            <button
+              className={tab === "customers" ? "selected" : ""}
+              onClick={() => setTab("customers")}
+            >
+              <UserCheck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Customer Control ({customers.length})
             </button>
             <button
               className={tab === "tracking" ? "selected" : ""}
@@ -3158,6 +3391,291 @@ function App() {
                                 title="Delete order"
                               >
                                 <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: CUSTOMER CONTROL & RELATIONSHIP HUB */}
+        {tab === "customers" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            {/* Header */}
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "linear-gradient(135deg, #1d4ed8, #2563eb)", display: "grid", placeItems: "center", color: "#fff", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
+                    <UserCheck size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#1e293b" }}>Customer Control & Relationship Hub</h3>
+                    <p style={{ margin: "3px 0 0", color: "#64748b", fontSize: "13px" }}>
+                      Manage verified customer accounts, delivery addresses, order histories, WhatsApp messaging, and VIP or blocked statuses.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleOpenAddCustomer}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", boxShadow: "0 2px 8px rgba(37,99,235,0.25)" }}
+                >
+                  <UserPlus size={16} /> Add Customer Profile
+                </button>
+              </div>
+            </div>
+
+            {/* METRICS ROW */}
+            <div className="emp-metric-grid" style={{ marginTop: "24px" }}>
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon blue">
+                  <Users size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">{customers.length}</div>
+                  <div className="emp-metric-label">Registered Customers</div>
+                  <div className="emp-metric-sub">Across all delivery zones</div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon orange">
+                  <BadgeCheck size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    {customers.filter(c => c.status === "VIP" || c.totalOrders >= 2).length}
+                  </div>
+                  <div className="emp-metric-label">VIP / Loyal Buyers</div>
+                  <div className="emp-metric-sub">Frequent repeat shoppers</div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon green">
+                  <DollarSign size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    ${(sales / (customers.length || 1)).toFixed(2)}
+                  </div>
+                  <div className="emp-metric-label">Avg. Customer LTV</div>
+                  <div className="emp-metric-sub">Average spend per client</div>
+                </div>
+              </div>
+
+              <div className="emp-metric-card">
+                <div className="emp-metric-icon purple">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    {customers.filter(c => c.status === "Blocked").length}
+                  </div>
+                  <div className="emp-metric-label">Blocked / Flagged</div>
+                  <div className="emp-metric-sub">Fraud prevention filter</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SEARCH & FILTERS BAR */}
+            <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "16px 20px", marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ position: "relative", minWidth: "260px", flex: "1 1 280px" }}>
+                <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                <input
+                  type="text"
+                  placeholder="Search customers by name, phone, email, address, or ID..."
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px 10px 38px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* STATUS FILTER CHIPS */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Filter:</span>
+                {["All", "VIP", "Active", "Blocked"].map(st => (
+                  <button
+                    key={st}
+                    type="button"
+                    className={`emp-filter-chip ${customerStatusFilter === st ? "active" : ""}`}
+                    onClick={() => setCustomerStatusFilter(st)}
+                  >
+                    {st === "All" ? "All Customers" : st === "VIP" ? "⭐ VIP Clients" : st === "Active" ? "● Active Buyers" : "🚫 Blocked"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CUSTOMER DIRECTORY TABLE */}
+            <div className="orders-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <table className="orders-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "960px" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CUSTOMER</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CONTACT INFO</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>DELIVERY ADDRESS</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ORDERS & SPEND</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>STATUS</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>PREFERENCES / NOTES</th>
+                    <th style={{ padding: "14px 16px", textAlign: "center", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCustomers.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: "#64748b" }}>No customers found</div>
+                        <p style={{ margin: "6px 0 0", fontSize: "13px" }}>Try adjusting your search query or filter selection</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCustomers.map((cust) => {
+                      const initials = getInitials(cust.name);
+                      const isVip = cust.status === "VIP";
+                      const isBlocked = cust.status === "Blocked";
+                      const avatarClass = isVip ? "cust-avatar vip" : isBlocked ? "cust-avatar blocked" : "cust-avatar";
+                      const customerOrdersList = orders.filter(o => 
+                        (o.customer && o.customer.toLowerCase() === cust.name.toLowerCase()) || 
+                        (o.customerPhone && o.customerPhone === cust.phone)
+                      );
+                      const actualOrdersCount = Math.max(cust.totalOrders || 0, customerOrdersList.length);
+                      const actualTotalSpent = Math.max(cust.totalSpent || 0, customerOrdersList.reduce((sum, o) => sum + Number(o.total || 0), 0));
+
+                      return (
+                        <tr key={cust.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div className={avatarClass}>
+                                {initials}
+                              </div>
+                              <div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>{cust.name}</span>
+                                  {isVip && (
+                                    <span className="cust-badge-vip">
+                                      ⭐ VIP
+                                    </span>
+                                  )}
+                                  {isBlocked && (
+                                    <span className="cust-badge-blocked">
+                                      🚫 Blocked
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
+                                  <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", fontWeight: 600 }}>{cust.id}</span>
+                                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>· Joined {cust.joinedDate || "2026"}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: "12px 16px" }}>
+                            <div>
+                              {cust.phone ? (
+                                <a href={`tel:${cust.phone}`} className="emp-contact-link">
+                                  <Phone size={12} style={{ color: "#166534" }} /> {cust.phone}
+                                </a>
+                              ) : (
+                                <span style={{ color: "#94a3b8", fontSize: "11px" }}>No phone</span>
+                              )}
+                            </div>
+                            <div>
+                              {cust.email ? (
+                                <a href={`mailto:${cust.email}`} className="emp-contact-link" style={{ marginTop: "2px", color: "#64748b" }}>
+                                  <Mail size={12} style={{ color: "#0284c7" }} /> {cust.email}
+                                </a>
+                              ) : null}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ fontSize: "12px", color: "#334155", maxWidth: "240px", display: "flex", alignItems: "flex-start", gap: "5px" }}>
+                              <MapPin size={13} style={{ color: "#166534", marginTop: "2px", flexShrink: 0 }} />
+                              <span>{cust.address || "Standard Home Delivery"}</span>
+                            </div>
+                          </td>
+
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <span className="cust-orders-badge">{actualOrdersCount} Orders</span>
+                              <span className="cust-spend-pill">${actualTotalSpent.toFixed(2)}</span>
+                            </div>
+                            <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>
+                              Last: {cust.lastOrderDate || "Recently"}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: "12px 16px" }}>
+                            <select
+                              value={cust.status}
+                              onChange={(e) => handleToggleCustomerStatus(cust.id, e.target.value)}
+                              className={`emp-select-status ${cust.status === "VIP" ? "on_delivery" : cust.status === "Blocked" ? "offline" : "active"}`}
+                              style={{
+                                background: cust.status === "VIP" ? "#fef9c3" : cust.status === "Blocked" ? "#fee2e2" : "#dcfce7",
+                                color: cust.status === "VIP" ? "#854d0e" : cust.status === "Blocked" ? "#b91c1c" : "#15803d",
+                                borderColor: cust.status === "VIP" ? "#facc15" : cust.status === "Blocked" ? "#fca5a5" : "#bbf7d0"
+                              }}
+                              title="Click to change customer status"
+                            >
+                              <option value="Active">● Active Buyer</option>
+                              <option value="VIP">⭐ VIP Client</option>
+                              <option value="Blocked">🚫 Blocked / Blacklist</option>
+                            </select>
+                          </td>
+
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ fontSize: "12px", color: "#64748b", maxWidth: "200px", fontStyle: cust.notes ? "normal" : "italic" }}>
+                              {cust.notes || "No specific delivery notes"}
+                            </div>
+                          </td>
+
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+                              {cust.phone && (
+                                <a
+                                  href={`https://wa.me/${cust.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hello ${cust.name}, thank you for choosing GreenBasket! How can we assist you today?`)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="emp-action-btn whatsapp"
+                                  title="Chat on WhatsApp"
+                                >
+                                  <Send size={13} />
+                                </a>
+                              )}
+                              <button
+                                type="button"
+                                className="emp-action-btn edit"
+                                onClick={() => setViewOrdersCustomer(cust)}
+                                title="View Customer Orders History"
+                              >
+                                <ShoppingBag size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="emp-action-btn edit"
+                                onClick={() => handleOpenEditCustomer(cust)}
+                                title="Edit Customer Details"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="emp-action-btn delete"
+                                onClick={() => handleDeleteCustomer(cust.id)}
+                                title="Delete Customer"
+                              >
+                                <Trash2 size={13} />
                               </button>
                             </div>
                           </td>
@@ -5666,6 +6184,239 @@ function App() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ADD / EDIT CUSTOMER MODAL */}
+        {customerModalOpen && (
+          <div className="modal-backdrop" onClick={() => setCustomerModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "540px", padding: "28px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "linear-gradient(135deg, #1d4ed8, #2563eb)", display: "grid", placeItems: "center", color: "#fff" }}>
+                    <UserCheck size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      {editingCustomer ? "Edit Customer Profile" : "Register New Customer"}
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      {editingCustomer ? `Update record for ${editingCustomer.id}` : "Enroll customer into GreenBasket database"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCustomerModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveCustomer} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Customer Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customerForm.name}
+                    onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                    placeholder="e.g. Sarah Ahmed"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Phone Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerForm.phone}
+                      onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                      placeholder="+880 1712-345678"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={customerForm.email}
+                      onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                      placeholder="customer@example.com"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Verified Delivery Address
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customerForm.address}
+                    onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                    placeholder="e.g. House #24, Road #4, Dhanmondi, Dhaka"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Account Status & Classification
+                  </label>
+                  <select
+                    value={customerForm.status}
+                    onChange={(e) => setCustomerForm({ ...customerForm, status: e.target.value })}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#fff", boxSizing: "border-box" }}
+                  >
+                    <option value="Active">● Active Buyer</option>
+                    <option value="VIP">⭐ VIP Client (Frequent / High Spender)</option>
+                    <option value="Blocked">🚫 Blocked / Blacklisted (Prevent Orders)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Customer Preferences / Admin Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={customerForm.notes}
+                    onChange={(e) => setCustomerForm({ ...customerForm, notes: e.target.value })}
+                    placeholder="e.g. Prefers morning delivery; call before ringing bell"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() => setCustomerModalOpen(false)}
+                    style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
+                  >
+                    {editingCustomer ? "Update Profile" : "Save Customer"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOMER ORDER HISTORY MODAL */}
+        {viewOrdersCustomer && (
+          <div className="modal-backdrop" onClick={() => setViewOrdersCustomer(null)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "680px", padding: "28px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div className={viewOrdersCustomer.status === "VIP" ? "cust-avatar vip" : "cust-avatar"} style={{ width: "38px", height: "38px", fontSize: "13px" }}>
+                    {getInitials(viewOrdersCustomer.name)}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      Order History: {viewOrdersCustomer.name}
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      {viewOrdersCustomer.phone} · {viewOrdersCustomer.address}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setViewOrdersCustomer(null)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Order List */}
+              <div style={{ maxHeight: "380px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+                {orders.filter(o => 
+                  (o.customer && o.customer.toLowerCase() === viewOrdersCustomer.name.toLowerCase()) || 
+                  (o.customerPhone && o.customerPhone === viewOrdersCustomer.phone)
+                ).length === 0 ? (
+                  <div style={{ padding: "30px", textAlign: "center", color: "#94a3b8" }}>
+                    <ShoppingBag size={32} style={{ margin: "0 auto 8px", opacity: 0.5 }} />
+                    <div style={{ fontSize: "14px", fontWeight: 600, color: "#64748b" }}>No orders recorded for this customer</div>
+                  </div>
+                ) : (
+                  orders.filter(o => 
+                    (o.customer && o.customer.toLowerCase() === viewOrdersCustomer.name.toLowerCase()) || 
+                    (o.customerPhone && o.customerPhone === viewOrdersCustomer.phone)
+                  ).map(ord => (
+                    <div key={ord.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontWeight: 800, color: "#0f172a", fontSize: "14px" }}>Order #{ord.id}</span>
+                          <span className={`badge ${ord.status === "Delivered" ? "badge-delivered" : ord.status === "Shipped" ? "badge-shipped" : "badge-processing"}`}>
+                            {ord.status}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "12px", color: "#334155", marginTop: "4px" }}>
+                          {ord.items}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                          Date: {ord.date} · Method: {ord.paymentMethod}
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 800, color: "#166534" }}>
+                          ${Number(ord.total || 0).toFixed(2)}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewOrdersCustomer(null);
+                            setSelectedOrderForModal(ord);
+                          }}
+                          style={{ marginTop: "6px", fontSize: "11px", fontWeight: 700, background: "#ecf5e7", color: "#1f4214", border: "1px solid #c9dec2", padding: "4px 8px", borderRadius: "6px", cursor: "pointer" }}
+                        >
+                          View Order Details →
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setViewOrdersCustomer(null)}
+                  style={{ padding: "8px 20px", borderRadius: "8px", fontSize: "12px", fontWeight: 700 }}
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}
