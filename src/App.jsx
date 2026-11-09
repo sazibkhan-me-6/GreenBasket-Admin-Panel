@@ -435,12 +435,78 @@ const defaultForm = {
   stock: "20"
 };
 
+export const ADMIN_ROLES = [
+  {
+    role: "Chief Administrator",
+    badgeClass: "admin-role-chief",
+    description: "Unrestricted master access: Full privileges over products, orders, tracking, staff, and admin security controls",
+    permissions: ["All Modules", "Admin Security", "Financial Controls", "System Toggles"]
+  },
+  {
+    role: "Super Admin",
+    badgeClass: "admin-role-chief",
+    description: "Executive control: Access to catalog, customer orders, live tracking, staff directory, and store settings",
+    permissions: ["Catalog", "Orders", "Tracking", "Staff", "Settings", "Analytics"]
+  },
+  {
+    role: "Store Operations Manager",
+    badgeClass: "admin-role-manager",
+    description: "Daily operations: Manage products, process orders, oversee delivery dispatch, and monitor analytics",
+    permissions: ["Catalog", "Orders", "Tracking", "Staff Roster", "Analytics"]
+  },
+  {
+    role: "Delivery & Order Dispatcher",
+    badgeClass: "admin-role-dispatcher",
+    description: "Fulfillment hub: Order statuses, assign delivery riders, coordinate shipments, and update checkpoints",
+    permissions: ["Orders", "Delivery Tracking", "Rider Dispatch"]
+  },
+  {
+    role: "Inventory & Catalog Specialist",
+    badgeClass: "admin-role-specialist",
+    description: "Stock & catalog management: Add, edit, remove products, set regular & promo pricing, and adjust stock",
+    permissions: ["Product Catalog", "Stock Inventory", "Pricing"]
+  },
+  {
+    role: "Customer Support Agent",
+    badgeClass: "admin-role-support",
+    description: "Customer service: View customer orders, lookup delivery addresses, track packages, and print invoices",
+    permissions: ["Orders (Read)", "Tracking Lookup", "Invoice Print"]
+  }
+];
+
 const DEFAULT_ADMIN_USERS = [
   {
+    id: "ADM-001",
     name: "Store Admin",
     email: "admin@greenbasket.com",
     password: "admin123",
-    role: "Chief Administrator"
+    role: "Chief Administrator",
+    status: "Active",
+    createdAt: "Nov 01, 2026",
+    lastLogin: "Active Now",
+    permissions: ["All Modules", "Admin Security", "Financial Controls", "System Toggles"]
+  },
+  {
+    id: "ADM-002",
+    name: "Sazib Khan",
+    email: "sazib@greenbasket.com",
+    password: "admin123",
+    role: "Super Admin",
+    status: "Active",
+    createdAt: "Nov 05, 2026",
+    lastLogin: "Today",
+    permissions: ["Catalog", "Orders", "Tracking", "Staff", "Settings", "Analytics"]
+  },
+  {
+    id: "ADM-003",
+    name: "Operations Lead",
+    email: "manager@greenbasket.com",
+    password: "admin123",
+    role: "Store Operations Manager",
+    status: "Active",
+    createdAt: "Nov 07, 2026",
+    lastLogin: "Yesterday",
+    permissions: ["Catalog", "Orders", "Tracking", "Staff Roster", "Analytics"]
   }
 ];
 
@@ -457,7 +523,7 @@ const defaultSettings = {
 const GIST_ID = "5c3186e2427e5900031ae4ea398ac1e7";
 const GIST_TOKEN_PARTS = ["gho_bB41m2", "XPLzNkr9mj", "1mR1GXiFsL", "Wt0D3MxTPq"];
 
-const syncToGist = async (productsData, settingsData, ordersData, employeesData) => {
+const syncToGist = async (productsData, settingsData, ordersData, employeesData, adminUsersData) => {
   try {
     const token = GIST_TOKEN_PARTS.join("");
     const nowIso = new Date().toISOString();
@@ -467,7 +533,8 @@ const syncToGist = async (productsData, settingsData, ordersData, employeesData)
       products: productsData,
       settings: settingsData,
       orders: ordersData || [],
-      employees: employeesData || []
+      employees: employeesData || [],
+      adminUsers: adminUsersData || []
     };
     await fetch(`https://api.github.com/gists/${GIST_ID}`, {
       method: "PATCH",
@@ -763,6 +830,30 @@ function App() {
     nid: ""
   });
 
+  // Admin Control Management States
+  const [adminSearch, setAdminSearch] = useState("");
+  const [adminRoleFilter, setAdminRoleFilter] = useState("All");
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState(null);
+  const [adminForm, setAdminForm] = useState({
+    id: "",
+    name: "",
+    email: "",
+    role: "Store Operations Manager",
+    password: "",
+    confirmPassword: "",
+    status: "Active"
+  });
+
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    name: "",
+    email: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: ""
+  });
+
   // Store Settings & Live Controls
   const [storeSettings, setStoreSettings] = useState(() => {
     try {
@@ -845,6 +936,10 @@ function App() {
             setEmployees(parsed.employees);
             localStorage.setItem("greenbasket_employees", JSON.stringify(parsed.employees));
           }
+          if (Array.isArray(parsed.adminUsers) && parsed.adminUsers.length > 0) {
+            setRegisteredUsers(parsed.adminUsers);
+            localStorage.setItem("greenbasket_admin_users", JSON.stringify(parsed.adminUsers));
+          }
         }
       } catch (e) {}
     };
@@ -885,6 +980,13 @@ function App() {
     } catch (e) {}
   }, [employees]);
 
+  // Persist admin users to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("greenbasket_admin_users", JSON.stringify(registeredUsers));
+    } catch (e) {}
+  }, [registeredUsers]);
+
   // Broadcast changes across tabs & to storefront immediately + background cloud sync
   useEffect(() => {
     const payload = {
@@ -915,7 +1017,7 @@ function App() {
 
     // Debounced background sync to Cloud Gist
     const debounceTimer = setTimeout(() => {
-      syncToGist(products, storeSettings, orders, employees);
+      syncToGist(products, storeSettings, orders, employees, registeredUsers);
     }, 500);
 
     return () => clearTimeout(debounceTimer);
@@ -1630,8 +1732,238 @@ function App() {
     );
     setEmployees(updatedList);
     localStorage.setItem("greenbasket_employees", JSON.stringify(updatedList));
-    syncToGist(products, storeSettings, orders, updatedList);
+    syncToGist(products, storeSettings, orders, updatedList, registeredUsers);
     triggerToast(`Duty status set to '${newStatus}'`);
+  };
+
+  // --- ADMIN CONTROL MANAGEMENT HANDLERS ---
+  const handleOpenAddAdmin = () => {
+    const nextId = "ADM-" + String(registeredUsers.length + 1).padStart(3, "0");
+    setEditingAdmin(null);
+    setAdminForm({
+      id: nextId,
+      name: "",
+      email: "",
+      role: "Store Operations Manager",
+      password: "",
+      confirmPassword: "",
+      status: "Active"
+    });
+    setAdminModalOpen(true);
+  };
+
+  const handleOpenEditAdmin = (adminUser) => {
+    setEditingAdmin(adminUser);
+    setAdminForm({
+      id: adminUser.id || ("ADM-" + Math.floor(100 + Math.random() * 900)),
+      name: adminUser.name || "",
+      email: adminUser.email || "",
+      role: adminUser.role || "Store Operations Manager",
+      password: "",
+      confirmPassword: "",
+      status: adminUser.status || "Active"
+    });
+    setAdminModalOpen(true);
+  };
+
+  const handleSaveAdmin = (e) => {
+    e.preventDefault();
+    const cleanEmail = adminForm.email.trim().toLowerCase();
+    const cleanName = adminForm.name.trim();
+
+    if (!cleanName) {
+      triggerToast("Please enter an admin name");
+      return;
+    }
+    if (!cleanEmail || !cleanEmail.includes("@")) {
+      triggerToast("Please enter a valid email address");
+      return;
+    }
+
+    if (editingAdmin) {
+      // Editing existing admin
+      const emailConflict = registeredUsers.find(
+        (u) => u.email.toLowerCase() === cleanEmail && u.email.toLowerCase() !== editingAdmin.email.toLowerCase()
+      );
+      if (emailConflict) {
+        triggerToast("Another admin already uses this email!");
+        return;
+      }
+
+      if (adminForm.password && adminForm.password.length < 6) {
+        triggerToast("New password must be at least 6 characters");
+        return;
+      }
+      if (adminForm.password && adminForm.password !== adminForm.confirmPassword) {
+        triggerToast("Passwords do not match!");
+        return;
+      }
+
+      const roleObj = ADMIN_ROLES.find(r => r.role === adminForm.role);
+      const perms = roleObj ? roleObj.permissions : ["Catalog", "Orders"];
+
+      const updated = registeredUsers.map((u) => {
+        if (u.email.toLowerCase() === editingAdmin.email.toLowerCase()) {
+          return {
+            ...u,
+            name: cleanName,
+            email: cleanEmail,
+            role: adminForm.role,
+            status: adminForm.status,
+            permissions: perms,
+            password: adminForm.password ? adminForm.password : u.password
+          };
+        }
+        return u;
+      });
+
+      setRegisteredUsers(updated);
+      localStorage.setItem("greenbasket_admin_users", JSON.stringify(updated));
+      syncToGist(products, storeSettings, orders, employees, updated);
+
+      // If updating currently logged in user, refresh session
+      if (currentUser && currentUser.email.toLowerCase() === editingAdmin.email.toLowerCase()) {
+        const refreshedUser = {
+          ...currentUser,
+          name: cleanName,
+          email: cleanEmail,
+          role: adminForm.role
+        };
+        setCurrentUser(refreshedUser);
+        localStorage.setItem("greenbasket_auth", JSON.stringify(refreshedUser));
+      }
+
+      setAdminModalOpen(false);
+      triggerToast(`Admin '${cleanName}' updated successfully!`);
+    } else {
+      // Adding new admin
+      const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        triggerToast("An admin with this email already exists!");
+        return;
+      }
+
+      if (!adminForm.password || adminForm.password.length < 6) {
+        triggerToast("Password must be at least 6 characters");
+        return;
+      }
+      if (adminForm.password !== adminForm.confirmPassword) {
+        triggerToast("Passwords do not match!");
+        return;
+      }
+
+      const roleObj = ADMIN_ROLES.find(r => r.role === adminForm.role);
+      const perms = roleObj ? roleObj.permissions : ["Catalog", "Orders"];
+
+      const newAdmin = {
+        id: adminForm.id || ("ADM-" + String(registeredUsers.length + 1).padStart(3, "0")),
+        name: cleanName,
+        email: cleanEmail,
+        password: adminForm.password,
+        role: adminForm.role,
+        status: adminForm.status || "Active",
+        createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+        lastLogin: "Never",
+        permissions: perms
+      };
+
+      const updated = [...registeredUsers, newAdmin];
+      setRegisteredUsers(updated);
+      localStorage.setItem("greenbasket_admin_users", JSON.stringify(updated));
+      syncToGist(products, storeSettings, orders, employees, updated);
+
+      setAdminModalOpen(false);
+      triggerToast(`Admin '${cleanName}' enrolled into system!`);
+    }
+  };
+
+  const handleDeleteAdmin = (adminUser) => {
+    if (currentUser && adminUser.email.toLowerCase() === currentUser.email.toLowerCase()) {
+      alert("Security Constraint: You cannot delete your own logged-in admin account!");
+      return;
+    }
+    if (adminUser.email.toLowerCase() === "admin@greenbasket.com") {
+      alert("Security Constraint: The primary Chief Administrator account cannot be deleted.");
+      return;
+    }
+    if (window.confirm(`Are you sure you want to revoke admin access for '${adminUser.name}' (${adminUser.email})?`)) {
+      const updated = registeredUsers.filter(u => u.email.toLowerCase() !== adminUser.email.toLowerCase());
+      setRegisteredUsers(updated);
+      localStorage.setItem("greenbasket_admin_users", JSON.stringify(updated));
+      syncToGist(products, storeSettings, orders, employees, updated);
+      triggerToast(`Admin account '${adminUser.name}' removed.`);
+    }
+  };
+
+  const handleToggleAdminStatus = (adminUser) => {
+    if (currentUser && adminUser.email.toLowerCase() === currentUser.email.toLowerCase()) {
+      triggerToast("Cannot suspend your own active admin session");
+      return;
+    }
+    const nextStatus = adminUser.status === "Active" ? "Suspended" : "Active";
+    const updated = registeredUsers.map(u =>
+      u.email.toLowerCase() === adminUser.email.toLowerCase() ? { ...u, status: nextStatus } : u
+    );
+    setRegisteredUsers(updated);
+    localStorage.setItem("greenbasket_admin_users", JSON.stringify(updated));
+    syncToGist(products, storeSettings, orders, employees, updated);
+    triggerToast(`Admin ${adminUser.name} status: ${nextStatus}`);
+  };
+
+  const handleOpenProfileModal = () => {
+    if (!currentUser) return;
+    setProfileForm({
+      name: currentUser.name || "",
+      email: currentUser.email || "",
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: ""
+    });
+    setProfileModalOpen(true);
+  };
+
+  const handleSaveProfile = (e) => {
+    e.preventDefault();
+    if (!profileForm.name.trim()) {
+      triggerToast("Please enter your display name");
+      return;
+    }
+
+    if (profileForm.newPassword) {
+      if (profileForm.newPassword.length < 6) {
+        triggerToast("New password must be at least 6 characters");
+        return;
+      }
+      if (profileForm.newPassword !== profileForm.confirmNewPassword) {
+        triggerToast("New passwords do not match!");
+        return;
+      }
+    }
+
+    const updated = registeredUsers.map((u) => {
+      if (currentUser && u.email.toLowerCase() === currentUser.email.toLowerCase()) {
+        return {
+          ...u,
+          name: profileForm.name.trim(),
+          password: profileForm.newPassword ? profileForm.newPassword : u.password
+        };
+      }
+      return u;
+    });
+
+    const refreshedSession = {
+      ...currentUser,
+      name: profileForm.name.trim()
+    };
+
+    setRegisteredUsers(updated);
+    setCurrentUser(refreshedSession);
+    localStorage.setItem("greenbasket_admin_users", JSON.stringify(updated));
+    localStorage.setItem("greenbasket_auth", JSON.stringify(refreshedSession));
+    syncToGist(products, storeSettings, orders, employees, updated);
+
+    setProfileModalOpen(false);
+    triggerToast("Your admin profile & credentials updated!");
   };
 
   function deleteOrder(orderId) {
@@ -1753,6 +2085,28 @@ function App() {
     const matchDept = employeeDeptFilter === "All" || emp.department === employeeDeptFilter;
     const matchStatus = employeeStatusFilter === "All" || emp.status === employeeStatusFilter;
     return matchSearch && matchDept && matchStatus;
+  });
+
+  const filteredAdmins = registeredUsers.map((u, idx) => ({
+    id: u.id || ("ADM-" + String(idx + 1).padStart(3, "0")),
+    name: u.name || "Admin",
+    email: u.email || "",
+    role: u.role || "Store Operations Manager",
+    status: u.status || "Active",
+    createdAt: u.createdAt || "Nov 2026",
+    lastLogin: u.lastLogin || "Recently",
+    password: u.password || "admin123",
+    permissions: u.permissions || (u.role === "Chief Administrator" || u.role === "Super Admin" ? ["All Modules", "Admin Security", "Financial Controls"] : ["Catalog", "Orders", "Tracking"])
+  })).filter((adm) => {
+    const q = adminSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      (adm.name && adm.name.toLowerCase().includes(q)) ||
+      (adm.email && adm.email.toLowerCase().includes(q)) ||
+      (adm.role && adm.role.toLowerCase().includes(q)) ||
+      (adm.id && adm.id.toLowerCase().includes(q));
+    const matchRole = adminRoleFilter === "All" || adm.role === adminRoleFilter;
+    return matchSearch && matchRole;
   });
 
   const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
@@ -2124,6 +2478,15 @@ function App() {
           >
             <Settings /> Store Controls
           </button>
+          <button
+            className={tab === "admin_control" ? "active" : ""}
+            onClick={() => {
+              setTab("admin_control");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <ShieldCheck /> Admin Control
+          </button>
         </nav>
 
         <div className="side-bottom">
@@ -2240,6 +2603,13 @@ function App() {
               onClick={() => setTab("settings")}
             >
               Store Controls & Settings
+            </button>
+            <button
+              className={tab === "admin_control" ? "selected" : ""}
+              onClick={() => setTab("admin_control")}
+            >
+              <ShieldCheck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Admin Control ({registeredUsers.length})
             </button>
           </div>
 
@@ -3893,6 +4263,389 @@ function App() {
           </div>
         )}
 
+        {/* TAB: ADMIN CONTROL & PRIVILEGE MANAGEMENT */}
+        {tab === "admin_control" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            {/* Header */}
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "linear-gradient(135deg, #15803d, #166534)", display: "grid", placeItems: "center", color: "#fff", boxShadow: "0 2px 8px rgba(22,101,52,0.3)" }}>
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#1e293b" }}>Admin Control & Team Management</h3>
+                    <p style={{ margin: "3px 0 0", color: "#64748b", fontSize: "13px" }}>
+                      Manage administrator accounts, roles, access permissions, security settings, and store control privileges.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleOpenAddAdmin}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", boxShadow: "0 2px 8px rgba(22,101,52,0.25)" }}
+                >
+                  <UserPlus size={16} /> Add Admin User
+                </button>
+              </div>
+            </div>
+
+            {/* Current Active Admin Profile Banner */}
+            <div className="admin-profile-box" style={{ marginTop: "20px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <div className="admin-profile-avatar">
+                  {currentUser ? getInitials(currentUser.name) : "GB"}
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                    <span style={{ fontSize: "18px", fontWeight: 800 }}>{currentUser?.name || "Store Administrator"}</span>
+                    <span style={{ background: "rgba(255,255,255,0.25)", color: "#fff", fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "12px" }}>
+                      YOU (Current Session)
+                    </span>
+                  </div>
+                  <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "2px" }}>
+                    {currentUser?.email} · Role: <b>{currentUser?.role || "Administrator"}</b>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                <button
+                  type="button"
+                  onClick={handleOpenProfileModal}
+                  style={{ background: "#ffffff", color: "#1f4314", border: "none", padding: "8px 16px", borderRadius: "8px", fontWeight: 700, fontSize: "12px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "6px", boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}
+                >
+                  <Lock size={13} /> Update My Profile / Password
+                </button>
+              </div>
+            </div>
+
+            {/* METRICS ROW */}
+            <div className="admin-card-grid">
+              <div className="admin-card">
+                <div className="emp-metric-icon green">
+                  <ShieldCheck size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">{registeredUsers.length}</div>
+                  <div className="emp-metric-label">Admin Accounts</div>
+                  <div className="emp-metric-sub">Registered management team</div>
+                </div>
+              </div>
+
+              <div className="admin-card">
+                <div className="emp-metric-icon orange">
+                  <UserCheck size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">
+                    {registeredUsers.filter(u => u.status !== "Suspended").length}
+                  </div>
+                  <div className="emp-metric-label">Active Administrators</div>
+                  <div className="emp-metric-sub">Ready with live credentials</div>
+                </div>
+              </div>
+
+              <div className="admin-card">
+                <div className="emp-metric-icon blue">
+                  <Lock size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">RBAC</div>
+                  <div className="emp-metric-label">Role-Based Access</div>
+                  <div className="emp-metric-sub">6 Distinct privilege tiers</div>
+                </div>
+              </div>
+
+              <div className="admin-card">
+                <div className="emp-metric-icon purple">
+                  <RefreshCw size={24} />
+                </div>
+                <div>
+                  <div className="emp-metric-value">Cloud</div>
+                  <div className="emp-metric-label">Encrypted Gist Sync</div>
+                  <div className="emp-metric-sub">Multi-device real-time sync</div>
+                </div>
+              </div>
+            </div>
+
+            {/* SYSTEM PRIVILEGES & SECURITY TOGGLES */}
+            <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "20px", marginBottom: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                <Lock size={18} style={{ color: "#166534" }} />
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#0f172a" }}>System Privilege Controls & Security Settings</h4>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+                {/* Toggle 1: Allow Public Registration */}
+                <div className="admin-sec-toggle">
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Allow Public Admin Registration</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      When enabled, new users can sign up from the login screen.
+                    </div>
+                  </div>
+                  <label className="admin-switch" title="Toggle public self-registration">
+                    <input
+                      type="checkbox"
+                      checked={storeSettings.allowPublicSignup ?? true}
+                      onChange={(e) => {
+                        const updated = { ...storeSettings, allowPublicSignup: e.target.checked };
+                        setStoreSettings(updated);
+                        syncToGist(products, updated, orders, employees, registeredUsers);
+                        triggerToast(`Public admin registration ${e.target.checked ? "enabled" : "disabled"}`);
+                      }}
+                    />
+                    <span className="admin-slider" />
+                  </label>
+                </div>
+
+                {/* Toggle 2: Order Audio Alert */}
+                <div className="admin-sec-toggle">
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>New Order Audio Alert Sound</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      Play an audible chime when new customer orders arrive.
+                    </div>
+                  </div>
+                  <label className="admin-switch" title="Toggle new order audio chime">
+                    <input
+                      type="checkbox"
+                      checked={storeSettings.orderSoundAlert ?? true}
+                      onChange={(e) => {
+                        const updated = { ...storeSettings, orderSoundAlert: e.target.checked };
+                        setStoreSettings(updated);
+                        syncToGist(products, updated, orders, employees, registeredUsers);
+                        triggerToast(`New order audio chime ${e.target.checked ? "enabled" : "disabled"}`);
+                      }}
+                    />
+                    <span className="admin-slider" />
+                  </label>
+                </div>
+
+                {/* Toggle 3: Maintenance Mode */}
+                <div className="admin-sec-toggle">
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Store Maintenance Mode Banner</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      Broadcasts a live maintenance notice on storefront.
+                    </div>
+                  </div>
+                  <label className="admin-switch" title="Toggle store maintenance mode">
+                    <input
+                      type="checkbox"
+                      checked={storeSettings.maintenanceMode ?? false}
+                      onChange={(e) => {
+                        const updated = { ...storeSettings, maintenanceMode: e.target.checked };
+                        setStoreSettings(updated);
+                        syncToGist(products, updated, orders, employees, registeredUsers);
+                        triggerToast(`Store maintenance notice ${e.target.checked ? "activated" : "deactivated"}`);
+                      }}
+                    />
+                    <span className="admin-slider" />
+                  </label>
+                </div>
+
+                {/* Force Manual Sync Button */}
+                <div className="admin-sec-toggle">
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700, color: "#1e293b" }}>Cloud Database Force Sync</div>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                      Push current products, orders & admin roster to Gist now.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      syncToGist(products, storeSettings, orders, employees, registeredUsers);
+                      triggerToast("⚡ Cloud database manual force sync complete!");
+                    }}
+                    style={{ background: "#2b6118", color: "#ffffff", border: "none", padding: "6px 14px", borderRadius: "8px", fontWeight: 700, fontSize: "12px", cursor: "pointer", whiteSpace: "nowrap" }}
+                  >
+                    Sync Now
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* SEARCH & FILTERS BAR */}
+            <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "16px 20px", marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ position: "relative", minWidth: "260px", flex: "1 1 280px" }}>
+                <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                <input
+                  type="text"
+                  placeholder="Search admin users by name, email, or role..."
+                  value={adminSearch}
+                  onChange={(e) => setAdminSearch(e.target.value)}
+                  style={{ width: "100%", padding: "10px 12px 10px 38px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+                />
+              </div>
+
+              {/* ROLE FILTER CHIPS */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Role:</span>
+                {["All", "Chief Administrator", "Super Admin", "Store Operations Manager", "Delivery & Order Dispatcher", "Inventory & Catalog Specialist"].map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`emp-filter-chip ${adminRoleFilter === r ? "active" : ""}`}
+                    onClick={() => setAdminRoleFilter(r)}
+                  >
+                    {r === "Chief Administrator" ? "Chief Admin" : r === "Store Operations Manager" ? "Manager" : r === "Delivery & Order Dispatcher" ? "Dispatcher" : r === "Inventory & Catalog Specialist" ? "Specialist" : r}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ADMIN DIRECTORY TABLE */}
+            <div className="orders-table-wrapper" style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", overflowX: "auto", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <table className="orders-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "920px" }}>
+                <thead>
+                  <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ADMINISTRATOR</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>EMAIL</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ASSIGNED ROLE</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>STATUS</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>PERMISSIONS</th>
+                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CREATED</th>
+                    <th style={{ padding: "14px 16px", textAlign: "center", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ACTIONS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredAdmins.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: "48px 20px", textAlign: "center", color: "#94a3b8" }}>
+                        <div style={{ fontSize: "16px", fontWeight: 700, color: "#64748b" }}>No administrators found</div>
+                        <p style={{ margin: "6px 0 0", fontSize: "13px" }}>Try adjusting your search keywords or role filter</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredAdmins.map((adm) => {
+                      const isMe = currentUser && currentUser.email.toLowerCase() === adm.email.toLowerCase();
+                      const roleConfig = ADMIN_ROLES.find(r => r.role === adm.role) || ADMIN_ROLES[2];
+                      const initials = getInitials(adm.name);
+                      return (
+                        <tr key={adm.email} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                              <div className="employee-avatar" style={{ background: isMe ? "linear-gradient(135deg, #15803d, #166534)" : "linear-gradient(135deg, #334155, #475569)" }}>
+                                {initials}
+                              </div>
+                              <div>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                  <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>{adm.name}</span>
+                                  {isMe && (
+                                    <span style={{ background: "#dcfce7", color: "#15803d", fontSize: "10px", fontWeight: 800, padding: "1px 6px", borderRadius: "10px", border: "1px solid #bbf7d0" }}>
+                                      YOU
+                                    </span>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", fontWeight: 600 }}>{adm.id}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <a href={`mailto:${adm.email}`} className="emp-contact-link" style={{ color: "#0284c7" }}>
+                              <Mail size={12} /> {adm.email}
+                            </a>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <span className={`admin-role-pill ${roleConfig.badgeClass}`}>
+                              {adm.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleToggleAdminStatus(adm)}
+                              style={{
+                                border: "none",
+                                background: adm.status === "Active" ? "#dcfce7" : "#fee2e2",
+                                color: adm.status === "Active" ? "#15803d" : "#b91c1c",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                padding: "3px 9px",
+                                borderRadius: "12px",
+                                cursor: isMe ? "default" : "pointer"
+                              }}
+                              title={isMe ? "Your active account" : "Click to toggle Active / Suspended"}
+                            >
+                              ● {adm.status || "Active"}
+                            </button>
+                          </td>
+                          <td style={{ padding: "12px 16px" }}>
+                            <div style={{ maxWidth: "240px", display: "flex", flexWrap: "wrap" }}>
+                              {(adm.permissions || roleConfig.permissions).map(p => (
+                                <span key={p} className={`admin-perm-pill ${p === "All Modules" ? "admin-perm-all" : ""}`}>
+                                  {p}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ padding: "12px 16px", fontSize: "12px", color: "#64748b" }}>
+                            {adm.createdAt || "Nov 2026"}
+                          </td>
+                          <td style={{ padding: "12px 16px", textAlign: "center" }}>
+                            <div style={{ display: "flex", justifyContent: "center", gap: "6px" }}>
+                              <button
+                                type="button"
+                                className="emp-action-btn edit"
+                                onClick={() => handleOpenEditAdmin(adm)}
+                                title="Edit Admin Role & Credentials"
+                              >
+                                <Pencil size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="emp-action-btn delete"
+                                onClick={() => handleDeleteAdmin(adm)}
+                                disabled={isMe || adm.email.toLowerCase() === "admin@greenbasket.com"}
+                                style={{ opacity: isMe || adm.email.toLowerCase() === "admin@greenbasket.com" ? 0.35 : 1, cursor: isMe || adm.email.toLowerCase() === "admin@greenbasket.com" ? "not-allowed" : "pointer" }}
+                                title={isMe ? "Cannot delete yourself" : adm.email.toLowerCase() === "admin@greenbasket.com" ? "Primary admin cannot be deleted" : "Delete Admin User"}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ROLE PERMISSION MATRIX REFERENCE */}
+            <div style={{ marginTop: "24px", background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "20px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Briefcase size={18} style={{ color: "#166534" }} />
+                <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 800, color: "#0f172a" }}>Role Permissions Reference Matrix</h4>
+              </div>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: "0 0 16px" }}>
+                Each assigned role grants specific operational capabilities across the store admin panel.
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "12px" }}>
+                {ADMIN_ROLES.map(r => (
+                  <div key={r.role} style={{ background: "#f8fafc", padding: "14px 16px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span className={`admin-role-pill ${r.badgeClass}`}>{r.role}</span>
+                      <span style={{ fontSize: "11px", color: "#64748b", fontWeight: 600 }}>{r.permissions.length} Modules</span>
+                    </div>
+                    <p style={{ margin: "8px 0 10px", fontSize: "12px", color: "#334155" }}>{r.description}</p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                      {r.permissions.map(p => (
+                        <span key={p} className={`admin-perm-pill ${p === "All Modules" ? "admin-perm-all" : ""}`}>{p}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ORDER DETAILS MODAL */}
         {selectedOrderForModal && (
           <div className="order-modal-backdrop" onClick={() => setSelectedOrderForModal(null)}>
@@ -4859,6 +5612,241 @@ function App() {
                     style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
                   >
                     {editingEmployee ? "Update Employee Profile" : "Save to Roster"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ADD / EDIT ADMIN USER MODAL */}
+        {adminModalOpen && (
+          <div className="modal-backdrop" onClick={() => setAdminModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "540px", padding: "28px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "linear-gradient(135deg, #15803d, #166534)", display: "grid", placeItems: "center", color: "#fff" }}>
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      {editingAdmin ? "Edit Administrator Access" : "Add New Administrator"}
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      {editingAdmin ? `Update credentials & permissions for ${editingAdmin.name}` : "Grant store management privileges to a new administrator"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAdminModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAdmin} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={adminForm.name}
+                    onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
+                    placeholder="e.g. Sazib Khan"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Official Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={adminForm.email}
+                    onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                    placeholder="manager@greenbasket.com"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Assigned Role *
+                    </label>
+                    <select
+                      value={adminForm.role}
+                      onChange={(e) => setAdminForm({ ...adminForm, role: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#fff", boxSizing: "border-box" }}
+                    >
+                      {ADMIN_ROLES.map(r => (
+                        <option key={r.role} value={r.role}>{r.role}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Account Status
+                    </label>
+                    <select
+                      value={adminForm.status}
+                      onChange={(e) => setAdminForm({ ...adminForm, status: e.target.value })}
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", background: "#fff", boxSizing: "border-box" }}
+                    >
+                      <option value="Active">Active (Permitted)</option>
+                      <option value="Suspended">Suspended (Blocked)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      {editingAdmin ? "New Password (Leave blank to keep)" : "Password *"}
+                    </label>
+                    <input
+                      type="password"
+                      required={!editingAdmin}
+                      value={adminForm.password}
+                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                      placeholder="Min. 6 chars"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                      Confirm Password {editingAdmin ? "" : "*"}
+                    </label>
+                    <input
+                      type="password"
+                      required={!editingAdmin || !!adminForm.password}
+                      value={adminForm.confirmPassword}
+                      onChange={(e) => setAdminForm({ ...adminForm, confirmPassword: e.target.value })}
+                      placeholder="Repeat password"
+                      style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() => setAdminModalOpen(false)}
+                    style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
+                  >
+                    {editingAdmin ? "Update Admin Privileges" : "Create Admin Account"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* MY PROFILE & PASSWORD UPDATE MODAL */}
+        {profileModalOpen && (
+          <div className="modal-backdrop" onClick={() => setProfileModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "480px", padding: "28px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "linear-gradient(135deg, #15803d, #166534)", display: "grid", placeItems: "center", color: "#fff" }}>
+                    <Lock size={18} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      Update My Profile & Credentials
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      Logged in as {currentUser?.email}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setProfileModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveProfile} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Display Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    New Password (Leave blank to keep existing)
+                  </label>
+                  <input
+                    type="password"
+                    value={profileForm.newPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, newPassword: e.target.value })}
+                    placeholder="Min. 6 characters"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={profileForm.confirmNewPassword}
+                    onChange={(e) => setProfileForm({ ...profileForm, confirmNewPassword: e.target.value })}
+                    placeholder="Repeat new password"
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() => setProfileModalOpen(false)}
+                    style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
+                  >
+                    Save Changes
                   </button>
                 </div>
               </form>
