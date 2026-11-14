@@ -805,9 +805,15 @@ export const initialPaymentMethods = [
 ];
 
 export const getCustomerCoordinates = (cust) => {
-  if (!cust) return { lat: 23.7548, lng: 90.3912, area: "Central Dhaka Hub" };
+  if (!cust) return { lat: 23.7548, lng: 90.3912, area: "Central Dhaka Hub", isLiveGps: false };
   if (cust.lat && cust.lng) {
-    return { lat: Number(cust.lat), lng: Number(cust.lng), area: cust.address || "Customer Location" };
+    return {
+      lat: Number(cust.lat),
+      lng: Number(cust.lng),
+      area: cust.detectedArea || cust.address || "Customer Live GPS Location",
+      isLiveGps: true,
+      detectedAt: cust.liveLocationDetectedAt
+    };
   }
   const addr = (cust.address || "").toLowerCase();
   if (addr.includes("dhanmondi")) {
@@ -1167,6 +1173,14 @@ const normalizeOrder = (raw) => {
     total: Number(raw.total) || 0,
     items: raw.items || "Fresh Grocery Pack",
 
+    // Live Google Maps GPS Location captured at order checkout
+    lat: raw.lat || (raw.customer && typeof raw.customer === "object" ? raw.customer.lat : null) || null,
+    lng: raw.lng || (raw.customer && typeof raw.customer === "object" ? raw.customer.lng : null) || null,
+    detectedArea: raw.detectedArea || (raw.customer && typeof raw.customer === "object" ? raw.customer.detectedArea : null) || null,
+    liveLocationDetectedAt: raw.liveLocationDetectedAt || (raw.customer && typeof raw.customer === "object" ? raw.customer.liveLocationDetectedAt : null) || null,
+    isLiveGps: raw.isLiveGps || Boolean(raw.lat || (raw.customer && raw.customer.lat)),
+    googleMapsUrl: raw.googleMapsUrl || (raw.lat ? `https://www.google.com/maps?q=${raw.lat},${raw.lng}` : null),
+
     // Tracking & Logistics fields
     trackingId: raw.trackingId || `GB-TRK-${numericId}`,
     trackingStage: stage,
@@ -1267,7 +1281,12 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings, customers,
                 totalSpent: (Number(custList[cIdx].totalSpent) || 0) + Number(normalized.total || 0),
                 lastOrderDate: normalized.date || "Today",
                 address: normalized.deliveryAddress || normalized.address || custList[cIdx].address,
-                phone: cPhone || custList[cIdx].phone
+                phone: cPhone || custList[cIdx].phone,
+                lat: normalized.lat || custList[cIdx].lat,
+                lng: normalized.lng || custList[cIdx].lng,
+                detectedArea: normalized.detectedArea || custList[cIdx].detectedArea,
+                liveLocationDetectedAt: normalized.liveLocationDetectedAt || new Date().toISOString(),
+                isLiveGps: Boolean(normalized.lat && normalized.lng)
               };
             } else {
               const newC = {
@@ -1281,7 +1300,12 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings, customers,
                 totalSpent: Number(normalized.total || 0),
                 lastOrderDate: normalized.date || "Today",
                 joinedDate: normalized.date || "Today",
-                notes: normalized.notes || "Auto-enrolled from website order"
+                notes: normalized.notes || "Auto-enrolled from website order with live GPS",
+                lat: normalized.lat || null,
+                lng: normalized.lng || null,
+                detectedArea: normalized.detectedArea || normalized.deliveryAddress,
+                liveLocationDetectedAt: normalized.liveLocationDetectedAt || new Date().toISOString(),
+                isLiveGps: Boolean(normalized.lat && normalized.lng)
               };
               custList = [newC, ...custList];
             }
@@ -2098,6 +2122,60 @@ function App() {
     } catch (e) {}
   }, [employees]);
 
+  // Simulate customer order placed on main website with instant Google Maps live GPS detection
+  const handleSimulateWebsiteOrderWithGps = () => {
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      triggerToast("🛰️ Detecting live GPS coordinates for website order simulation...");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = Number(pos.coords.latitude.toFixed(6));
+          const lng = Number(pos.coords.longitude.toFixed(6));
+          completeSimulatedOrder(lat, lng, "Live Browser GPS Location (Dhaka)");
+        },
+        () => {
+          const hotspots = [
+            { name: "Dhanmondi, Dhaka", lat: 23.7465, lng: 90.3760 },
+            { name: "Gulshan-2, Dhaka", lat: 23.7925, lng: 90.4078 },
+            { name: "Banani, Dhaka", lat: 23.7937, lng: 90.4043 },
+            { name: "Sector 7, Uttara, Dhaka", lat: 23.8759, lng: 90.3795 },
+            { name: "Mirpur 10, Dhaka", lat: 23.8069, lng: 90.3687 }
+          ];
+          const spot = hotspots[Math.floor(Math.random() * hotspots.length)];
+          completeSimulatedOrder(spot.lat, spot.lng, spot.name);
+        },
+        { enableHighAccuracy: true, timeout: 3000 }
+      );
+    } else {
+      completeSimulatedOrder(23.7465, 90.3760, "Dhanmondi, Dhaka");
+    }
+  };
+
+  const completeSimulatedOrder = (lat, lng, area) => {
+    const custNames = ["Tanvir Hossain", "Farhana Rahman", "Mahmudul Hasan", "Nusrat Jahan", "Arifur Rahman"];
+    const randomName = custNames[Math.floor(Math.random() * custNames.length)];
+    const randomPhone = "+880 1" + Math.floor(700000000 + Math.random() * 99999999);
+    const simOrder = {
+      id: "GB-" + Math.floor(2000 + Math.random() * 8000),
+      customer: randomName,
+      customerPhone: randomPhone,
+      deliveryAddress: `House #${Math.floor(10 + Math.random() * 80)}, Road #${Math.floor(1 + Math.random() * 20)}, ${area}`,
+      notes: "Website instant order with live GPS detection",
+      total: (18 + Math.random() * 45).toFixed(2),
+      paymentMethod: "bKash Live Payment",
+      paymentStatus: "Paid",
+      lat,
+      lng,
+      detectedArea: area,
+      liveLocationDetectedAt: new Date().toISOString(),
+      isLiveGps: true,
+      items: [
+        { name: "Fresh Organic Avocados", qty: 2, price: 2.49 },
+        { name: "Farm Tomatoes", qty: 1, price: 2.99 }
+      ]
+    };
+    handleIncomingNewOrder(simOrder);
+  };
+
   // Persist admin users to localStorage
   useEffect(() => {
     try {
@@ -2157,7 +2235,13 @@ function App() {
       return next;
     });
 
-    // Auto-update or enroll customer in Customer Control
+    // Extract detected live GPS coordinates from incoming order
+    const cLat = normalized.lat || rawOrder.lat || (rawOrder.customer && rawOrder.customer.lat);
+    const cLng = normalized.lng || rawOrder.lng || (rawOrder.customer && rawOrder.customer.lng);
+    const cArea = normalized.detectedArea || rawOrder.detectedArea || (rawOrder.customer && rawOrder.customer.detectedArea) || normalized.deliveryAddress;
+    const cDetectedAt = normalized.liveLocationDetectedAt || new Date().toISOString();
+
+    // Auto-update or enroll customer in Customer Control with Instant Live Google Maps Location
     setCustomers((prevCusts) => {
       const cPhone = normalized.customerPhone || normalized.phone || "";
       const cName = normalized.customer || normalized.customerName || "Customer";
@@ -2169,8 +2253,10 @@ function App() {
       );
 
       let nextCusts;
+      let targetCustId = null;
       if (cIdx >= 0) {
         nextCusts = [...prevCusts];
+        targetCustId = nextCusts[cIdx].id;
         nextCusts[cIdx] = {
           ...nextCusts[cIdx],
           totalOrders: (Number(nextCusts[cIdx].totalOrders) || 0) + 1,
@@ -2178,11 +2264,17 @@ function App() {
           lastOrderDate: normalized.date || "Today",
           address: normalized.deliveryAddress || normalized.address || nextCusts[cIdx].address,
           phone: cPhone || nextCusts[cIdx].phone,
-          email: cEmail || nextCusts[cIdx].email
+          email: cEmail || nextCusts[cIdx].email,
+          lat: cLat || nextCusts[cIdx].lat,
+          lng: cLng || nextCusts[cIdx].lng,
+          detectedArea: cArea || nextCusts[cIdx].detectedArea,
+          liveLocationDetectedAt: cDetectedAt,
+          isLiveGps: Boolean(cLat && cLng)
         };
       } else {
+        targetCustId = "CUST-" + (1000 + prevCusts.length + 1);
         const newC = {
-          id: "CUST-" + (1000 + prevCusts.length + 1),
+          id: targetCustId,
           name: cName,
           phone: cPhone,
           email: cEmail,
@@ -2192,9 +2284,17 @@ function App() {
           totalSpent: Number(normalized.total || 0),
           lastOrderDate: normalized.date || "Today",
           joinedDate: normalized.date || "Today",
-          notes: normalized.notes || "Auto-enrolled from website order"
+          notes: normalized.notes || "Live order placed from website with GPS detection",
+          lat: cLat || null,
+          lng: cLng || null,
+          detectedArea: cArea || null,
+          liveLocationDetectedAt: cDetectedAt,
+          isLiveGps: Boolean(cLat && cLng)
         };
         nextCusts = [newC, ...prevCusts];
+      }
+      if (targetCustId) {
+        setActiveRadarCustomerId(targetCustId);
       }
       localStorage.setItem("greenbasket_customers", JSON.stringify(nextCusts));
       syncToGist(products, storeSettings, [normalized, ...orders], employees, registeredUsers, nextCusts);
@@ -2204,7 +2304,8 @@ function App() {
     if (storeSettings.orderSoundAlert !== false) {
       playChime();
     }
-    triggerToast(`🔔 New Order #${normalized.id} received from ${normalized.customer}! Total: $${Number(normalized.total || 0).toFixed(2)}`);
+    const locationStr = cLat && cLng ? ` (📍 Live GPS: ${cLat.toFixed(4)}, ${cLng.toFixed(4)} - ${cArea})` : "";
+    triggerToast(`🔔 New Order #${normalized.id} from ${normalized.customer}!${locationStr}`);
   };
 
   const handleCategoryFileChange = (e) => {
@@ -5543,6 +5644,16 @@ function App() {
                 </button>
                 <button
                   type="button"
+                  onClick={handleSimulateWebsiteOrderWithGps}
+                  className="btn btn-secondary"
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", color: "#15803d", borderColor: "#86efac" }}
+                  title="Simulate a customer order placed on main website with instant live GPS location detection"
+                >
+                  <LocateFixed size={13} color="#16a34a" />
+                  Simulate Website Order (GPS Test)
+                </button>
+                <button
+                  type="button"
                   className="primary"
                   onClick={handleOpenAddCustomer}
                   style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 20px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", boxShadow: "0 2px 8px rgba(37,99,235,0.25)" }}
@@ -6039,18 +6150,26 @@ function App() {
                               <MapPin size={13} style={{ color: "#166534", marginTop: "2px", flexShrink: 0 }} />
                               <span>{cust.address || "Standard Home Delivery"}</span>
                             </div>
+                            {(cust.lat && cust.lng) && (
+                              <div style={{ marginTop: "4px" }}>
+                                <span style={{ fontSize: "10px", background: "#dcfce7", color: "#15803d", border: "1px solid #86efac", padding: "1px 6px", borderRadius: "8px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#22c55e", display: "inline-block", boxShadow: "0 0 0 2px rgba(34,197,94,0.3)" }} />
+                                  Live GPS: {cust.lat}° N, {cust.lng}° E
+                                </span>
+                              </div>
+                            )}
                             <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}>
                               <button
                                 type="button"
                                 onClick={() => setSelectedCustomerForMap(cust)}
                                 style={{
-                                  background: "#eff6ff",
-                                  border: "1px solid #bfdbfe",
-                                  color: "#1d4ed8",
+                                  background: (cust.lat && cust.lng) ? "#f0fdf4" : "#eff6ff",
+                                  border: (cust.lat && cust.lng) ? "1px solid #86efac" : "1px solid #bfdbfe",
+                                  color: (cust.lat && cust.lng) ? "#15803d" : "#1d4ed8",
                                   padding: "2px 8px",
                                   borderRadius: "6px",
                                   fontSize: "11px",
-                                  fontWeight: 600,
+                                  fontWeight: 700,
                                   cursor: "pointer",
                                   display: "inline-flex",
                                   alignItems: "center",
@@ -6058,7 +6177,7 @@ function App() {
                                 }}
                                 title="View live delivery location on Google Maps"
                               >
-                                <MapPin size={10} /> Live Map
+                                <MapPin size={10} /> {(cust.lat && cust.lng) ? "Live GPS Map" : "Live Map"}
                               </button>
                               <a
                                 href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(cust.address || "Dhaka")}
@@ -11058,6 +11177,27 @@ function App() {
 
                 return (
                   <div className="order-modal-body" style={{ maxHeight: "74vh", overflowY: "auto", padding: "18px" }}>
+                    {/* Live GPS Captured Alert Banner */}
+                    <div style={{ background: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "#ecfdf5" : "#eff6ff", border: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "1px solid #86efac" : "1px solid #bfdbfe", borderRadius: "10px", padding: "10px 14px", marginBottom: "14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ width: "9px", height: "9px", borderRadius: "50%", background: "#16a34a", display: "inline-block", boxShadow: "0 0 0 3px rgba(34,197,94,0.25)" }} />
+                        <div>
+                          <b style={{ fontSize: "12px", color: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "#065f46" : "#1e40af" }}>
+                            {(custLoc.isLiveGps || selectedCustomerForMap.lat) ? "INSTANT LIVE GPS DETECTED AT WEBSITE CHECKOUT" : "LOCATION RESOLVED VIA AREA RADAR"}
+                          </b>
+                          <div style={{ fontSize: "11px", color: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "#047857" : "#3b82f6" }}>
+                            Latitude: <b>{custLoc.lat}° N</b> · Longitude: <b>{custLoc.lng}° E</b>
+                            {selectedCustomerForMap.liveLocationDetectedAt && (
+                              <span> · Detected: {new Date(selectedCustomerForMap.liveLocationDetectedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: "10.5px", background: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "#d1fae5" : "#dbeafe", color: (custLoc.isLiveGps || selectedCustomerForMap.lat) ? "#065f46" : "#1d4ed8", padding: "2px 8px", borderRadius: "12px", fontWeight: 700 }}>
+                        ● INSTANT RADAR SYNC
+                      </span>
+                    </div>
+
                     {/* Embedded Google Maps */}
                     <div style={{ position: "relative", width: "100%", height: "340px", borderRadius: "12px", overflow: "hidden", border: "1px solid #cbd5e1", marginBottom: "16px", background: "#f1f5f9" }}>
                       <iframe
