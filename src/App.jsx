@@ -4168,38 +4168,79 @@ function App() {
                   className={`filter-chip ${trackingFilter === "All" ? "active" : ""}`}
                   onClick={() => setTrackingFilter("All")}
                 >
-                  All ({orders.length})
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: trackingFilter === "All" ? "#ffffff" : "#2b6118",
+                      display: "inline-block"
+                    }}
+                  />
+                  <span>All</span>
+                  <span
+                    className="filter-chip-badge"
+                    style={{
+                      background: trackingFilter === "All" ? "rgba(255, 255, 255, 0.28)" : "#f1f5f9",
+                      color: trackingFilter === "All" ? "#ffffff" : "#475569",
+                      border: trackingFilter === "All" ? "none" : "1px solid #e2e8f0"
+                    }}
+                  >
+                    {orders.length}
+                  </span>
                 </button>
                 {TRACKING_STAGES.map((st) => {
                   const count = orders.filter(o => (o.trackingStage || "placed") === st.key).length;
+                  const isSelected = trackingFilter === st.key;
                   return (
                     <button
                       key={st.key}
                       type="button"
-                      className={`filter-chip ${trackingFilter === st.key ? "active" : ""}`}
+                      className={`filter-chip ${isSelected ? "active" : ""}`}
                       onClick={() => setTrackingFilter(st.key)}
                       style={{
-                        borderColor: trackingFilter === st.key ? st.color : undefined,
-                        color: trackingFilter === st.key ? st.color : undefined
+                        borderColor: isSelected ? st.color : "#cbd5e1",
+                        background: isSelected ? st.color : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#475569",
+                        boxShadow: isSelected ? `0 2px 6px ${st.color}40` : "0 1px 2px rgba(0, 0, 0, 0.03)"
                       }}
                     >
-                      {st.label} ({count})
+                      <span
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: "50%",
+                          background: isSelected ? "#ffffff" : st.color,
+                          display: "inline-block"
+                        }}
+                      />
+                      <span>{st.label}</span>
+                      <span
+                        className="filter-chip-badge"
+                        style={{
+                          background: isSelected ? "rgba(255, 255, 255, 0.28)" : "#f1f5f9",
+                          color: isSelected ? "#ffffff" : "#475569",
+                          border: isSelected ? "none" : "1px solid #e2e8f0"
+                        }}
+                      >
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
               </div>
 
-              <div className="order-search-box">
-                <Search size={15} />
+              <div className="tracking-search-box-compact">
+                <Search size={13} style={{ color: "#64748b", flexShrink: 0 }} />
                 <input
                   type="text"
-                  placeholder="Search order ID, rider, customer, checkpoint..."
+                  placeholder="Search tracking..."
                   value={trackingSearch}
                   onChange={(e) => setTrackingSearch(e.target.value)}
                 />
                 {trackingSearch && (
-                  <button type="button" onClick={() => setTrackingSearch("")} className="clear-btn">
-                    <X size={12} />
+                  <button type="button" onClick={() => setTrackingSearch("")} title="Clear search">
+                    <X size={11} />
                   </button>
                 )}
               </div>
