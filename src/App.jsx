@@ -630,16 +630,6 @@ const syncToGist = async (productsData, settingsData, ordersData, employeesData,
 };
 
 // Helper to guarantee rich tracking and contact details on every order
-const sortOrdersRecentFirst = (a, b) => {
-  const timeA = a.date ? Date.parse(a.date) : (a.timestamp || 0);
-  const timeB = b.date ? Date.parse(b.date) : (b.timestamp || 0);
-  if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) return timeB - timeA;
-  const numA = parseInt(String(a.id || "").replace(/\D/g, ""), 10);
-  const numB = parseInt(String(b.id || "").replace(/\D/g, ""), 10);
-  if (!isNaN(numA) && !isNaN(numB)) return numB - numA;
-  return 0;
-};
-
 const normalizeOrder = (raw) => {
   if (!raw) return null;
   const rawId = raw.id || "GB-" + Math.floor(1000 + Math.random() * 9000);
@@ -782,7 +772,7 @@ function HeadlessBridge({ products, orders, setOrders, storeSettings, customers,
           const normalized = normalizeOrder(e.data.order);
           const current = localStorage.getItem("greenbasket_orders");
           const list = current ? JSON.parse(current).map(normalizeOrder) : orders || [];
-          const updated = [normalized, ...list.filter((item) => item.id !== normalized.id)].sort(sortOrdersRecentFirst);
+          const updated = [normalized, ...list.filter((item) => item.id !== normalized.id)];
           localStorage.setItem("greenbasket_orders", JSON.stringify(updated));
           if (setOrders) setOrders(updated);
 
@@ -936,9 +926,9 @@ function App() {
     try {
       const saved = localStorage.getItem("greenbasket_orders");
       const list = saved ? JSON.parse(saved) : initialOrders;
-      return list.map(normalizeOrder).sort(sortOrdersRecentFirst);
+      return list.map(normalizeOrder);
     } catch {
-      return initialOrders.map(normalizeOrder).sort(sortOrdersRecentFirst);
+      return initialOrders.map(normalizeOrder);
     }
   });
 
@@ -1273,7 +1263,7 @@ function App() {
   const handleIncomingNewOrder = (rawOrder) => {
     const normalized = normalizeOrder(rawOrder);
     setOrders((prev) => {
-      const next = [normalized, ...prev.filter((o) => o.id !== normalized.id)].sort(sortOrdersRecentFirst);
+      const next = [normalized, ...prev.filter((o) => o.id !== normalized.id)];
       localStorage.setItem("greenbasket_orders", JSON.stringify(next));
       return next;
     });
@@ -2461,27 +2451,25 @@ function App() {
     return matchesCat && matchesSearch;
   });
 
-  const filteredOrders = [...orders]
-    .filter((o) => {
-      const matchesStatus = orderStatusFilter === "All" || o.status === orderStatusFilter;
-      const oPayment =
-        o.paymentStatus ||
-        (o.paymentMethod === "Cash on Delivery" && o.status !== "Delivered" ? "Pending" : "Paid");
-      const matchesPayment = orderPaymentFilter === "All" || oPayment === orderPaymentFilter;
-      const q = orderSearch.trim().toLowerCase();
-      const matchesSearch =
-        !q ||
-        (o.id && o.id.toLowerCase().includes(q)) ||
-        (o.customer && o.customer.toLowerCase().includes(q)) ||
-        (o.customerName && o.customerName.toLowerCase().includes(q)) ||
-        (o.address && o.address.toLowerCase().includes(q)) ||
-        (o.deliveryAddress && o.deliveryAddress.toLowerCase().includes(q)) ||
-        (o.customerPhone && o.customerPhone.toLowerCase().includes(q)) ||
-        (o.paymentMethod && o.paymentMethod.toLowerCase().includes(q)) ||
-        (o.items && (typeof o.items === "string" ? o.items : JSON.stringify(o.items)).toLowerCase().includes(q));
-      return matchesStatus && matchesPayment && matchesSearch;
-    })
-    .sort(sortOrdersRecentFirst);
+  const filteredOrders = orders.filter((o) => {
+    const matchesStatus = orderStatusFilter === "All" || o.status === orderStatusFilter;
+    const oPayment =
+      o.paymentStatus ||
+      (o.paymentMethod === "Cash on Delivery" && o.status !== "Delivered" ? "Pending" : "Paid");
+    const matchesPayment = orderPaymentFilter === "All" || oPayment === orderPaymentFilter;
+    const q = orderSearch.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      (o.id && o.id.toLowerCase().includes(q)) ||
+      (o.customer && o.customer.toLowerCase().includes(q)) ||
+      (o.customerName && o.customerName.toLowerCase().includes(q)) ||
+      (o.address && o.address.toLowerCase().includes(q)) ||
+      (o.deliveryAddress && o.deliveryAddress.toLowerCase().includes(q)) ||
+      (o.customerPhone && o.customerPhone.toLowerCase().includes(q)) ||
+      (o.paymentMethod && o.paymentMethod.toLowerCase().includes(q)) ||
+      (o.items && (typeof o.items === "string" ? o.items : JSON.stringify(o.items)).toLowerCase().includes(q));
+    return matchesStatus && matchesPayment && matchesSearch;
+  });
 
   const filteredEmployees = employees.filter((emp) => {
     const q = employeeSearch.toLowerCase().trim();
@@ -2686,26 +2674,13 @@ function App() {
 
         <nav>
           <button
-            className={tab === "products" && !showForm ? "active" : ""}
+            className={tab === "products" ? "active" : ""}
             onClick={() => {
               setTab("products");
-              setShowForm(false);
               setMobileMenuOpen(false);
             }}
           >
             <Package /> Product Catalog
-          </button>
-          <button
-            className={`nav-sub-item ${tab === "products" && showForm && !editing ? "active" : ""}`}
-            onClick={() => {
-              setTab("products");
-              reset();
-              setShowForm(true);
-              setMobileMenuOpen(false);
-            }}
-            title="Add a new item to Product Catalog"
-          >
-            <Plus size={14} /> Product Catalog Add
           </button>
           <button
             className={tab === "orders" ? "active" : ""}
@@ -2867,6 +2842,13 @@ function App() {
             >
               <ExternalLink size={13} /> View Storefront (greenbasket-nu)
             </button>
+            <div className="user-pill">
+              <span className="user-pill-avatar">{getInitials(currentUser.name)}</span>
+              <span className="user-pill-name">{currentUser.name}</span>
+            </div>
+            <button className="top-logout-btn" onClick={handleLogout} title="Logout">
+              <LogOut size={15} /> Logout
+            </button>
           </div>
         </header>
 
@@ -2967,11 +2949,10 @@ function App() {
                   className="primary"
                   onClick={() => {
                     reset();
-                    setShowForm(true);
+                    setShowForm(!showForm);
                   }}
-                  title="Add a new item to Product Catalog"
                 >
-                  <Plus size={16} /> Product Catalog Add
+                  <Plus size={17} /> Add Product
                 </button>
               </>
             )}
@@ -3001,21 +2982,9 @@ function App() {
                 >
                   <RotateCcw size={15} /> Reset Default
                 </button>
-                <button
-                  className={showForm && !editing ? "primary" : "soft"}
-                  onClick={() => {
-                    if (!showForm) {
-                      reset();
-                      setShowForm(true);
-                    } else {
-                      setShowForm(false);
-                    }
-                  }}
-                  style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-                  title="Add a new item to Product Catalog"
-                >
-                  {showForm ? <X size={15} /> : <Plus size={15} />}
-                  {showForm ? "Close Form" : "Product Catalog Add"}
+                <button className="soft" onClick={() => setShowForm(!showForm)}>
+                  {showForm ? <X size={16} /> : <Plus size={16} />}
+                  {showForm ? "Close Form" : "Open Form"}
                 </button>
               </div>
             </div>
@@ -3500,7 +3469,7 @@ function App() {
               <table>
                 <thead>
                   <tr>
-                    <th>Order ID (Recent First ↓)</th>
+                    <th>Order ID</th>
                     <th>Customer & Phone</th>
                     <th>Delivery Address</th>
                     <th>Items</th>
@@ -4106,7 +4075,7 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...orders]
+                  {orders
                     .filter((o) => {
                       const matchesStage = trackingFilter === "All" || (o.trackingStage || "placed") === trackingFilter;
                       const q = trackingSearch.toLowerCase().trim();
@@ -4119,7 +4088,6 @@ function App() {
                         (o.currentCheckpoint && o.currentCheckpoint.toLowerCase().includes(q));
                       return matchesStage && matchesSearch;
                     })
-                    .sort(sortOrdersRecentFirst)
                     .map((o) => {
                       const stageObj = TRACKING_STAGES.find(s => s.key === (o.trackingStage || "placed")) || TRACKING_STAGES[0];
                       const stepIndex = TRACKING_STAGES.findIndex(s => s.key === (o.trackingStage || "placed"));
@@ -6657,7 +6625,7 @@ function App() {
                   orders.filter(o => 
                     (o.customer && o.customer.toLowerCase() === viewOrdersCustomer.name.toLowerCase()) || 
                     (o.customerPhone && o.customerPhone === viewOrdersCustomer.phone)
-                  ).sort(sortOrdersRecentFirst).map(ord => (
+                  ).map(ord => (
                     <div key={ord.id} style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
                       <div>
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
