@@ -54,7 +54,11 @@ import {
   BadgeCheck,
   Radio,
   Smartphone,
-  Share2
+  Share2,
+  LocateFixed,
+  BatteryCharging,
+  Compass,
+  Gauge
 } from "lucide-react";
 
 const initialProducts = [
@@ -191,6 +195,62 @@ const initialProducts = [
     stock: 15
   }
 ];
+
+export const DEFAULT_RIDER_LOCATIONS = {
+  "EMP-101": {
+    lat: 23.7465,
+    lng: 90.3760,
+    area: "Dhanmondi 27 (Lake Circus Road), Dhaka",
+    checkpoint: "Near Dhanmondi Lake Checkpoint",
+    speed: "26 km/h",
+    battery: "84%",
+    status: "On Delivery",
+    vehicle: "Eco Electric Bike #12",
+    zone: "Dhanmondi & Central Dhaka"
+  },
+  "EMP-103": {
+    lat: 23.7925,
+    lng: 90.4078,
+    area: "Gulshan-2 Circle (North Avenue), Dhaka",
+    checkpoint: "Near Gulshan Club Checkpoint",
+    speed: "32 km/h",
+    battery: "91%",
+    status: "On Delivery",
+    vehicle: "GreenBasket Cargo Van #02",
+    zone: "Gulshan, Baridhara & Banani"
+  },
+  "EMP-104": {
+    lat: 23.7937,
+    lng: 90.4043,
+    area: "Banani Road 11 (Block D), Dhaka",
+    checkpoint: "Departing Central Logistics Point",
+    speed: "19 km/h",
+    battery: "78%",
+    status: "Active / Standby",
+    vehicle: "Honda 125cc Bike #05",
+    zone: "Banani & Mohakhali"
+  }
+};
+
+export const getRiderLocationData = (emp, jitter = { lat: 0, lng: 0 }) => {
+  if (!emp) return { lat: 23.7548, lng: 90.3912, area: "Central Hub, Dhaka", speed: "0 km/h", battery: "100%", status: "Idle", vehicle: "N/A", checkpoint: "Central Warehouse" };
+  const base = DEFAULT_RIDER_LOCATIONS[emp.id] || {
+    lat: 23.7548 + ((parseInt(emp.id?.replace(/[^0-9]/g, "") || "1", 10) % 5) - 2) * 0.015,
+    lng: 90.3912 + ((parseInt(emp.id?.replace(/[^0-9]/g, "") || "1", 10) % 7) - 3) * 0.012,
+    area: `${emp.name}'s Dispatch Zone, Dhaka`,
+    checkpoint: "Active in assigned delivery sector",
+    speed: "24 km/h",
+    battery: "85%",
+    status: emp.status || "On Duty",
+    vehicle: emp.vehicleType || "GreenBasket Delivery Vehicle",
+    zone: "Dhaka Metropolitan Area"
+  };
+  return {
+    ...base,
+    lat: Number((base.lat + (jitter?.lat || 0)).toFixed(6)),
+    lng: Number((base.lng + (jitter?.lng || 0)).toFixed(6))
+  };
+};
 
 export const TRACKING_STAGES = [
   { key: "placed", label: "Order Placed", labelBn: "অর্ডার গ্রহণ", step: 1, color: "#2563eb", bg: "#eff6ff" },
@@ -1003,6 +1063,43 @@ function App() {
   const [editCustomerPhone, setEditCustomerPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editNotes, setEditNotes] = useState("");
+
+  // Live Google Maps Tracking States for Delivery Employees
+  const [selectedRiderId, setSelectedRiderId] = useState("EMP-101");
+  const [isTrackingMapOpen, setIsTrackingMapOpen] = useState(true);
+  const [isGpsRefreshing, setIsGpsRefreshing] = useState(false);
+  const [mapRiderJitter, setMapRiderJitter] = useState({ lat: 0, lng: 0 });
+  const [lastGpsPingTime, setLastGpsPingTime] = useState("Just now");
+  const trackingMapRef = useRef(null);
+
+  const handleRefreshGps = () => {
+    setIsGpsRefreshing(true);
+    const randomLat = (Math.random() - 0.5) * 0.0016;
+    const randomLng = (Math.random() - 0.5) * 0.0016;
+    setMapRiderJitter({ lat: randomLat, lng: randomLng });
+    setLastGpsPingTime("Just now");
+    setTimeout(() => {
+      setIsGpsRefreshing(false);
+    }, 600);
+  };
+
+  const focusRiderOnMap = (riderName) => {
+    if (!riderName) return;
+    const found = employees.find(
+      (e) =>
+        (e.department === "Logistics & Delivery" ||
+          (e.role && e.role.toLowerCase().includes("delivery")) ||
+          (e.role && e.role.toLowerCase().includes("rider"))) &&
+        e.name.toLowerCase().includes(riderName.toLowerCase())
+    );
+    if (found) {
+      setSelectedRiderId(found.id);
+    }
+    setIsTrackingMapOpen(true);
+    setTimeout(() => {
+      trackingMapRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+  };
 
   // Customer Control System States
   const [customers, setCustomers] = useState(() => {
@@ -2613,6 +2710,30 @@ function App() {
     return matchSearch && matchDept && matchStatus;
   });
 
+  const deliveryStaff = employees.filter(
+    (e) =>
+      e.department === "Logistics & Delivery" ||
+      (e.role && e.role.toLowerCase().includes("delivery")) ||
+      (e.role && e.role.toLowerCase().includes("rider"))
+  );
+  const activeRider =
+    deliveryStaff.find((e) => e.id === selectedRiderId) || deliveryStaff[0] || employees[0];
+  const activeRiderLoc = getRiderLocationData(activeRider, mapRiderJitter);
+  const activeRiderAssignedOrder =
+    orders.find(
+      (o) =>
+        activeRider &&
+        o.riderName &&
+        o.riderName.toLowerCase().includes(activeRider.name.toLowerCase()) &&
+        o.trackingStage !== "delivered"
+    ) ||
+    orders.find(
+      (o) =>
+        activeRider &&
+        o.riderName &&
+        o.riderName.toLowerCase().includes(activeRider.name.toLowerCase())
+    );
+
   const filteredAdmins = registeredUsers.map((u, idx) => ({
     id: u.id || ("ADM-" + String(idx + 1).padStart(3, "0")),
     name: u.name || "Admin",
@@ -4105,6 +4226,21 @@ function App() {
               </div>
 
               <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsTrackingMapOpen(!isTrackingMapOpen);
+                    if (!isTrackingMapOpen) {
+                      setTimeout(() => {
+                        trackingMapRef.current?.scrollIntoView({ behavior: "smooth" });
+                      }, 100);
+                    }
+                  }}
+                  className="btn btn-primary"
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <MapPin size={13} /> {isTrackingMapOpen ? "Hide Live Fleet Map" : "View Live Google Map"}
+                </button>
                 <a
                   href="https://greenbasket-nu.vercel.app/#track"
                   target="_blank"
@@ -4158,6 +4294,614 @@ function App() {
                   <span>Delivered Successfully</span>
                 </div>
               </div>
+            </div>
+
+            {/* LIVE GOOGLE MAPS FLEET TRACKING SECTION */}
+            <div
+              ref={trackingMapRef}
+              className="tracking-map-section-card"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "20px",
+                marginBottom: "24px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.03)"
+              }}
+            >
+              {/* Header of Map Section */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "14px",
+                  marginBottom: isTrackingMapOpen ? "18px" : "0",
+                  paddingBottom: isTrackingMapOpen ? "14px" : "0",
+                  borderBottom: isTrackingMapOpen ? "1px solid #f1f5f9" : "none"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "42px",
+                      height: "42px",
+                      borderRadius: "12px",
+                      background: "linear-gradient(135deg, #16a34a, #2b6118)",
+                      display: "grid",
+                      placeItems: "center",
+                      color: "#ffffff",
+                      boxShadow: "0 2px 8px rgba(34,197,94,0.3)"
+                    }}
+                  >
+                    <LocateFixed size={22} />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                      <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1e293b" }}>
+                        Delivery Fleet Live Google Maps Radar
+                      </h4>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "5px",
+                          background: "#ecfdf5",
+                          color: "#15803d",
+                          border: "1px solid #bbf7d0",
+                          padding: "2px 8px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 700
+                        }}
+                      >
+                        <span className="live-radar-dot" /> LIVE GPS ACTIVE
+                      </span>
+                      <span
+                        style={{
+                          background: "#eff6ff",
+                          color: "#2563eb",
+                          border: "1px solid #bfdbfe",
+                          padding: "2px 8px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600
+                        }}
+                      >
+                        {deliveryStaff.length} Delivery Employees on Duty
+                      </span>
+                    </div>
+                    <p style={{ margin: "3px 0 0", fontSize: "12px", color: "#64748b" }}>
+                      ডেলিভারি কর্মীদের রিয়েল-টাইম গুগল ম্যাপ জিপিএস লোকেশন, গতিবেগ, চলতি অর্ডার ও লাইভ রুট ট্র্যাকিং।
+                    </p>
+                  </div>
+                </div>
+
+                {/* Top Controls */}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={handleRefreshGps}
+                    className="btn btn-secondary"
+                    disabled={isGpsRefreshing}
+                    style={{
+                      fontSize: "11.5px",
+                      padding: "6px 12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: "#f8fafc",
+                      border: "1px solid #cbd5e1",
+                      cursor: "pointer"
+                    }}
+                    title="Simulate / Refresh live GPS telemetry signal"
+                  >
+                    <RefreshCw size={12} className={isGpsRefreshing ? "spin-animate" : ""} />
+                    {isGpsRefreshing ? "Pinging GPS..." : "Refresh GPS Ping"}
+                  </button>
+
+                  {activeRiderLoc && (
+                    <a
+                      href={`https://www.google.com/maps?q=${activeRiderLoc.lat},${activeRiderLoc.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{
+                        fontSize: "11.5px",
+                        padding: "6px 12px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        textDecoration: "none"
+                      }}
+                    >
+                      <ExternalLink size={12} /> Google Maps App
+                    </a>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsTrackingMapOpen(!isTrackingMapOpen)}
+                    className="btn btn-secondary"
+                    style={{
+                      fontSize: "11.5px",
+                      padding: "6px 12px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    {isTrackingMapOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    {isTrackingMapOpen ? "Collapse Map" : "Expand Live Map"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Map Body (Conditional on isTrackingMapOpen) */}
+              {isTrackingMapOpen && (
+                <div>
+                  {/* 1. Rider Fleet Selector Strip */}
+                  <div style={{ marginBottom: "16px" }}>
+                    <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: "8px" }}>
+                      Select Delivery Employee / Rider to Track:
+                    </span>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                        gap: "10px"
+                      }}
+                    >
+                      {deliveryStaff.map((emp) => {
+                        const isSelected = emp.id === activeRider?.id;
+                        const loc = getRiderLocationData(emp, isSelected ? mapRiderJitter : { lat: 0, lng: 0 });
+                        const empOrder = orders.find(
+                          (o) => o.riderName && o.riderName.toLowerCase().includes(emp.name.toLowerCase()) && o.trackingStage !== "delivered"
+                        );
+
+                        return (
+                          <div
+                            key={emp.id}
+                            onClick={() => setSelectedRiderId(emp.id)}
+                            style={{
+                              background: isSelected ? "#f0fdf4" : "#ffffff",
+                              border: isSelected ? "2px solid #2b6118" : "1px solid #e2e8f0",
+                              borderRadius: "12px",
+                              padding: "10px 12px",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "10px",
+                              transition: "all 0.18s ease",
+                              boxShadow: isSelected ? "0 4px 12px rgba(43,97,24,0.12)" : "0 1px 2px rgba(0,0,0,0.03)"
+                            }}
+                          >
+                            <div style={{ position: "relative", flexShrink: 0 }}>
+                              {emp.image ? (
+                                <img
+                                  src={emp.image}
+                                  alt={emp.name}
+                                  style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover", border: isSelected ? "2px solid #2b6118" : "1px solid #cbd5e1" }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "40px",
+                                    height: "40px",
+                                    borderRadius: "50%",
+                                    background: isSelected ? "#dcfce7" : "#f1f5f9",
+                                    color: isSelected ? "#15803d" : "#475569",
+                                    fontWeight: 700,
+                                    display: "grid",
+                                    placeItems: "center",
+                                    fontSize: "14px"
+                                  }}
+                                >
+                                  {emp.name.charAt(0)}
+                                </div>
+                              )}
+                              <span
+                                style={{
+                                  position: "absolute",
+                                  bottom: "-1px",
+                                  right: "-1px",
+                                  width: "11px",
+                                  height: "11px",
+                                  borderRadius: "50%",
+                                  background: "#22c55e",
+                                  border: "2px solid #ffffff"
+                                }}
+                                title="GPS Online"
+                              />
+                            </div>
+
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "4px" }}>
+                                <b style={{ fontSize: "12.5px", color: isSelected ? "#1e3b14" : "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  {emp.name}
+                                </b>
+                                <span style={{ fontSize: "10px", fontWeight: 700, color: isSelected ? "#16a34a" : "#64748b" }}>
+                                  {loc.speed}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {emp.vehicleType || "Delivery Bike"}
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                                <span
+                                  style={{
+                                    fontSize: "9.5px",
+                                    fontWeight: 700,
+                                    padding: "1px 6px",
+                                    borderRadius: "10px",
+                                    background: empOrder ? "#eff6ff" : "#f1f5f9",
+                                    color: empOrder ? "#1d4ed8" : "#475569",
+                                    whiteSpace: "nowrap"
+                                  }}
+                                >
+                                  {empOrder ? `📦 ${empOrder.id}` : "Idle / Ready"}
+                                </span>
+                                <span style={{ fontSize: "10px", color: "#64748b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  📍 {loc.area.split(",")[0]}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 2. Split Screen: Google Map Frame + Live Telemetry Detail Panel */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1.8fr) minmax(310px, 1fr)",
+                      gap: "16px",
+                      alignItems: "stretch"
+                    }}
+                    className="tracking-map-grid"
+                  >
+                    {/* LEFT: Google Maps Iframe & Overlays */}
+                    <div
+                      style={{
+                        position: "relative",
+                        minHeight: "440px",
+                        height: "100%",
+                        borderRadius: "14px",
+                        overflow: "hidden",
+                        border: "1px solid #cbd5e1",
+                        background: "#f1f5f9",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)"
+                      }}
+                    >
+                      <iframe
+                        title={`Google Maps Live - ${activeRider?.name || "Delivery Employee"}`}
+                        src={`https://maps.google.com/maps?q=${activeRiderLoc.lat},${activeRiderLoc.lng}&hl=en&z=15&output=embed`}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0, display: "block", minHeight: "440px" }}
+                        allowFullScreen=""
+                        loading="lazy"
+                      />
+
+                      {/* Top Overlay Badge on Map */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "12px",
+                          left: "12px",
+                          background: "rgba(15, 23, 42, 0.90)",
+                          backdropFilter: "blur(6px)",
+                          color: "#ffffff",
+                          padding: "6px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
+                          zIndex: 5,
+                          maxWidth: "calc(100% - 24px)",
+                          overflow: "hidden"
+                        }}
+                      >
+                        <span className="live-radar-dot" />
+                        <span style={{ fontWeight: 700, color: "#86efac" }}>{activeRider?.name}</span>
+                        <span style={{ color: "#64748b" }}>•</span>
+                        <span>{activeRiderLoc.speed}</span>
+                        <span style={{ color: "#64748b" }}>•</span>
+                        <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeRiderLoc.area}</span>
+                      </div>
+
+                      {/* Bottom Overlay Actions on Map */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "12px",
+                          right: "12px",
+                          display: "flex",
+                          gap: "8px",
+                          zIndex: 5,
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <a
+                          href={`https://www.google.com/maps?q=${activeRiderLoc.lat},${activeRiderLoc.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            background: "#ffffff",
+                            color: "#1e293b",
+                            padding: "6px 12px",
+                            borderRadius: "8px",
+                            fontSize: "11.5px",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            textDecoration: "none",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                            border: "1px solid #cbd5e1"
+                          }}
+                        >
+                          <ExternalLink size={12} color="#2b6118" /> Open in Google Maps
+                        </a>
+                        {activeRiderAssignedOrder?.address && (
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&origin=${activeRiderLoc.lat},${activeRiderLoc.lng}&destination=${encodeURIComponent(activeRiderAssignedOrder.address)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              background: "#2b6118",
+                              color: "#ffffff",
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              fontSize: "11.5px",
+                              fontWeight: 700,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              textDecoration: "none",
+                              boxShadow: "0 2px 8px rgba(43,97,24,0.3)"
+                            }}
+                          >
+                            <Navigation size={12} /> Google Directions Route
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* RIGHT: Selected Rider Live Telemetry Card */}
+                    <div
+                      style={{
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "14px",
+                        padding: "18px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: "14px"
+                      }}
+                    >
+                      <div>
+                        {/* Rider Bio Header */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                          {activeRider?.image ? (
+                            <img
+                              src={activeRider.image}
+                              alt={activeRider.name}
+                              style={{ width: "50px", height: "50px", borderRadius: "50%", objectFit: "cover", border: "2px solid #2b6118" }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: "50px",
+                                height: "50px",
+                                borderRadius: "50%",
+                                background: "#2b6118",
+                                color: "#fff",
+                                fontWeight: 700,
+                                fontSize: "18px",
+                                display: "grid",
+                                placeItems: "center"
+                              }}
+                            >
+                              {activeRider?.name.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>
+                                {activeRider?.name}
+                              </h4>
+                              <span style={{ fontSize: "10px", background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: "10px", fontWeight: 700 }}>
+                                {activeRider?.id}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                              {activeRider?.role || "Delivery Rider"} • {activeRider?.department}
+                            </span>
+                            {activeRider?.phone && (
+                              <div style={{ marginTop: "3px" }}>
+                                <a href={`tel:${activeRider.phone}`} style={{ fontSize: "11px", color: "#2b6118", fontWeight: 700, textDecoration: "none" }}>
+                                  <Phone size={10} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                  {activeRider.phone}
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Telemetry Stats Grid */}
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "8px",
+                            marginBottom: "14px"
+                          }}
+                        >
+                          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <Gauge size={11} color="#2563eb" /> Live Speed
+                            </span>
+                            <b style={{ fontSize: "13px", color: "#1e293b", display: "block", marginTop: "2px" }}>
+                              {activeRiderLoc.speed}
+                            </b>
+                          </div>
+                          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <BatteryCharging size={11} color="#16a34a" /> Battery / Fuel
+                            </span>
+                            <b style={{ fontSize: "13px", color: "#16a34a", display: "block", marginTop: "2px" }}>
+                              {activeRiderLoc.battery}
+                            </b>
+                          </div>
+                          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <Compass size={11} color="#d97706" /> Vehicle
+                            </span>
+                            <b style={{ fontSize: "11px", color: "#1e293b", display: "block", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {activeRiderLoc.vehicle}
+                            </b>
+                          </div>
+                          <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "8px 10px" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <Clock size={11} color="#7c3aed" /> GPS Ping
+                            </span>
+                            <b style={{ fontSize: "12px", color: "#1e293b", display: "block", marginTop: "2px" }}>
+                              {lastGpsPingTime}
+                            </b>
+                          </div>
+                        </div>
+
+                        {/* Live GPS Coordinates Card */}
+                        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px", marginBottom: "14px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "flex", alignItems: "center", gap: "4px" }}>
+                              <MapPin size={11} color="#dc2626" /> GPS Coordinates
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard.writeText(`${activeRiderLoc.lat}, ${activeRiderLoc.lng}`)}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748b", fontSize: "10px", display: "flex", alignItems: "center", gap: "2px" }}
+                              title="Copy latitude and longitude"
+                            >
+                              <Copy size={10} /> Copy
+                            </button>
+                          </div>
+                          <code style={{ fontSize: "11.5px", color: "#0f172a", fontWeight: 700, display: "block", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px" }}>
+                            {activeRiderLoc.lat}° N, {activeRiderLoc.lng}° E
+                          </code>
+                          <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "4px" }}>
+                            📍 {activeRiderLoc.area}
+                          </span>
+                          <span style={{ fontSize: "10.5px", color: "#2b6118", fontWeight: 600, display: "block", marginTop: "2px" }}>
+                            Checkpoint: {activeRiderLoc.checkpoint}
+                          </span>
+                        </div>
+
+                        {/* Current Assigned Delivery Order */}
+                        <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "flex", alignItems: "center", gap: "4px", marginBottom: "4px" }}>
+                            <Truck size={12} color="#2b6118" /> Current Order Assignment
+                          </span>
+                          {activeRiderAssignedOrder ? (
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <b style={{ fontSize: "12px", color: "#1e3b14" }}>
+                                  Order #{activeRiderAssignedOrder.id}
+                                </b>
+                                <span style={{ fontSize: "10.5px", color: "#ea580c", background: "#fff7ed", padding: "1px 6px", borderRadius: "10px", fontWeight: 700 }}>
+                                  {activeRiderAssignedOrder.trackingStage || "In Transit"}
+                                </span>
+                              </div>
+                              <p style={{ margin: "3px 0 0", fontSize: "11.5px", color: "#334155" }}>
+                                <b>Customer:</b> {activeRiderAssignedOrder.customer}
+                              </p>
+                              <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#64748b" }}>
+                                <b>Destination:</b> {activeRiderAssignedOrder.address}
+                              </p>
+                              <div style={{ marginTop: "6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <span style={{ fontSize: "11px", color: "#16a34a", fontWeight: 700 }}>
+                                  ETA: {activeRiderAssignedOrder.estimatedDelivery || "Within 30 mins"}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => openTrackingModal(activeRiderAssignedOrder)}
+                                  style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d", padding: "2px 8px", borderRadius: "6px", fontSize: "10.5px", fontWeight: 600, cursor: "pointer" }}
+                                >
+                                  Manage Order ↗
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                              No active transit parcel assigned. Standby at dispatch hub.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons at bottom of Telemetry Card */}
+                      <div style={{ display: "flex", gap: "8px", paddingTop: "8px", borderTop: "1px solid #e2e8f0" }}>
+                        {activeRider?.phone && (
+                          <a
+                            href={`tel:${activeRider.phone}`}
+                            style={{
+                              flex: 1,
+                              textAlign: "center",
+                              background: "#ffffff",
+                              border: "1px solid #cbd5e1",
+                              color: "#334155",
+                              padding: "8px",
+                              borderRadius: "8px",
+                              fontSize: "11.5px",
+                              fontWeight: 600,
+                              textDecoration: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "6px"
+                            }}
+                          >
+                            <Phone size={12} color="#16a34a" /> Call Rider
+                          </a>
+                        )}
+                        {activeRider?.phone && (
+                          <a
+                            href={`https://wa.me/${activeRider.phone.replace(/[^0-9]/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              flex: 1,
+                              textAlign: "center",
+                              background: "#25d366",
+                              border: "none",
+                              color: "#ffffff",
+                              padding: "8px",
+                              borderRadius: "8px",
+                              fontSize: "11.5px",
+                              fontWeight: 600,
+                              textDecoration: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "6px"
+                            }}
+                          >
+                            <Send size={12} /> WhatsApp
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Tracking Filter & Search Toolbar */}
@@ -4347,6 +5091,30 @@ function App() {
                                   <Phone size={10} style={{ verticalAlign: "middle", marginRight: "3px" }} />
                                   {o.riderPhone}
                                 </a>
+                              )}
+                              {o.riderName && o.riderName !== "Pending Assignment" && (
+                                <button
+                                  type="button"
+                                  onClick={() => focusRiderOnMap(o.riderName)}
+                                  style={{
+                                    marginTop: "4px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                    background: "#ecfdf5",
+                                    border: "1px solid #a7f3d0",
+                                    color: "#059669",
+                                    padding: "2px 8px",
+                                    borderRadius: "6px",
+                                    fontSize: "10.5px",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    width: "fit-content"
+                                  }}
+                                  title={`View ${o.riderName}'s live location on Google Maps`}
+                                >
+                                  <MapPin size={10} /> Live Map
+                                </button>
                               )}
                             </div>
                           </td>
