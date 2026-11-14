@@ -922,23 +922,34 @@ function App() {
 
 
 
-  // Categories State & Management
+  // Categories State & Photo Management
   const defaultCategories = [
-    "Vegetables",
-    "Fruits",
-    "Herbs & Greens",
-    "Dairy",
-    "Bakery",
-    "Pantry",
-    "Beverages"
+    { name: "Vegetables", image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=450&q=85" },
+    { name: "Fruits", image: "https://images.unsplash.com/photo-1610832958506-aa56368176cf?auto=format&fit=crop&w=450&q=85" },
+    { name: "Herbs & Greens", image: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=450&q=85" },
+    { name: "Dairy", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=450&q=85" },
+    { name: "Bakery", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=450&q=85" },
+    { name: "Pantry", image: "https://images.unsplash.com/photo-1514733670139-4d87a1941d55?auto=format&fit=crop&w=450&q=85" },
+    { name: "Beverages", image: "https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=450&q=85" }
   ];
+
+  const getCatName = (c) => (typeof c === "string" ? c : (c.name || ""));
+  const getCatImage = (c) => (typeof c === "string" ? "" : (c.image || ""));
 
   const [categories, setCategories] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_categories");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item) => {
+            if (typeof item === "string") {
+              const matched = defaultCategories.find(d => d.name.toLowerCase() === item.toLowerCase());
+              return { name: item, image: matched?.image || "" };
+            }
+            return item;
+          });
+        }
       }
     } catch {}
     return defaultCategories;
@@ -946,6 +957,8 @@ function App() {
 
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryImage, setNewCategoryImage] = useState("");
+  const categoryFileInputRef = useRef(null);
 
   // Products State
   const [products, setProducts] = useState(() => {
@@ -1354,6 +1367,21 @@ function App() {
     triggerToast(`🔔 New Order #${normalized.id} received from ${normalized.customer}! Total: $${Number(normalized.total || 0).toFixed(2)}`);
   };
 
+  const handleCategoryFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      triggerToast("Please select a valid image file (PNG, JPG, WebP)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setNewCategoryImage(event.target.result);
+      triggerToast("Category photo selected!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleAddCategory = (e) => {
     e.preventDefault();
     const trimmed = newCategoryName.trim();
@@ -1361,19 +1389,24 @@ function App() {
       triggerToast("Please enter a category name");
       return;
     }
-    const exists = categories.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+    const exists = categories.some((c) => getCatName(c).toLowerCase() === trimmed.toLowerCase());
     if (exists) {
       triggerToast(`Category "${trimmed}" already exists`);
       return;
     }
-    const updated = [...categories, trimmed];
+    const newCatItem = {
+      name: trimmed,
+      image: newCategoryImage.trim() || "https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=450&q=85"
+    };
+    const updated = [...categories, newCatItem];
     setCategories(updated);
     localStorage.setItem("greenbasket_categories", JSON.stringify(updated));
     setSelectedCategory(trimmed);
     setForm((prev) => ({ ...prev, category: trimmed }));
     setNewCategoryName("");
+    setNewCategoryImage("");
     setCategoryModalOpen(false);
-    triggerToast(`New category "${trimmed}" added to Product Catalog!`);
+    triggerToast(`New category "${trimmed}" with photo added to Product Catalog!`);
     syncToGist(products, storeSettings, orders, employees, registeredUsers, customers, updated);
   };
 
@@ -1382,19 +1415,20 @@ function App() {
       triggerToast("At least one category must remain");
       return;
     }
-    const count = products.filter((p) => p.category === catToDelete).length;
+    const targetName = getCatName(catToDelete);
+    const count = products.filter((p) => p.category === targetName).length;
     if (count > 0) {
-      if (!window.confirm(`Category "${catToDelete}" has ${count} product(s). Are you sure you want to remove it?`)) {
+      if (!window.confirm(`Category "${targetName}" has ${count} product(s). Are you sure you want to remove it?`)) {
         return;
       }
     }
-    const updated = categories.filter((c) => c !== catToDelete);
+    const updated = categories.filter((c) => getCatName(c) !== targetName);
     setCategories(updated);
     localStorage.setItem("greenbasket_categories", JSON.stringify(updated));
-    if (selectedCategory === catToDelete) {
+    if (selectedCategory === targetName) {
       setSelectedCategory("All");
     }
-    triggerToast(`Category "${catToDelete}" removed`);
+    triggerToast(`Category "${targetName}" removed`);
     syncToGist(products, storeSettings, orders, employees, registeredUsers, customers, updated);
   };
 
@@ -2510,7 +2544,7 @@ function App() {
   const sales = orders.reduce((s, o) => s + Number(o.total || 0), 0);
   const customersCount = new Set(orders.map((o) => o.customer)).size;
 
-  const allCategoryTabs = ["All", ...categories];
+  const allCategoryTabs = ["All", ...categories.map(getCatName)];
 
   const filtered = products.filter((p) => {
     const matchesCat = selectedCategory === "All" || p.category === selectedCategory;
@@ -3174,11 +3208,14 @@ function App() {
                         }
                       }}
                     >
-                      {categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
+                      {categories.map((c) => {
+                        const cName = getCatName(c);
+                        return (
+                          <option key={cName} value={cName}>
+                            {cName}
+                          </option>
+                        );
+                      })}
                       <option value="__NEW__">+ Add New Category...</option>
                     </select>
                   </label>
@@ -4649,10 +4686,11 @@ function App() {
                   <TrendingUp size={18} /> Category Breakdown
                 </h4>
                 {categories.map((cat) => {
-                  const count = products.filter((p) => p.category === cat).length;
+                  const catName = getCatName(cat);
+                  const count = products.filter((p) => p.category === catName).length;
                   const pct = products.length > 0 ? (count / products.length) * 100 : 0;
                   return (
-                    <div key={cat} style={{ marginBottom: "10px" }}>
+                    <div key={catName} style={{ marginBottom: "10px" }}>
                       <div
                         style={{
                           display: "flex",
@@ -4661,7 +4699,7 @@ function App() {
                           marginBottom: "4px"
                         }}
                       >
-                        <span>{cat}</span>
+                        <span>{catName}</span>
                         <b>
                           {count} items ({Math.round(pct)}%)
                         </b>
@@ -6707,7 +6745,7 @@ function App() {
             <div
               className="modal-content"
               onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: "480px", padding: "26px" }}
+              style={{ maxWidth: "520px", padding: "26px", maxHeight: "90vh", overflowY: "auto" }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -6716,10 +6754,10 @@ function App() {
                   </div>
                   <div>
                     <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
-                      Add New Category (নতুন ক্যাটাগরি)
+                      Add New Category (নতুন ক্যাটাগরি ও ছবি)
                     </h3>
                     <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
-                      Create and manage categories for your product catalog
+                      Create category with name and custom photo for product catalog
                     </p>
                   </div>
                 </div>
@@ -6732,58 +6770,177 @@ function App() {
                 </button>
               </div>
 
-              {/* Add New Category Input Form */}
-              <form onSubmit={handleAddCategory} style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="e.g. Organic Spices, Seafood, Snacks..."
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
-                />
-                <button
-                  type="submit"
-                  className="primary"
-                  style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}
-                >
-                  <Plus size={15} /> Add Category
-                </button>
+              {/* Add New Category Form with Photo Upload */}
+              <form onSubmit={handleAddCategory} style={{ display: "flex", flexDirection: "column", gap: "14px", marginBottom: "22px", background: "#f8fafc", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Category Name * (ক্যাটাগরির নাম)
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. Organic Spices, Seafood, Snacks, Dairy..."
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box", background: "#fff" }}
+                  />
+                </div>
+
+                {/* Category Photo Upload Section */}
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
+                    Category Photo * (ছবি অ্যাড করার অপশন)
+                  </label>
+
+                  <input
+                    type="file"
+                    ref={categoryFileInputRef}
+                    accept="image/*"
+                    onChange={handleCategoryFileChange}
+                    style={{ display: "none" }}
+                  />
+
+                  {newCategoryImage ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "#ffffff", padding: "10px 14px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                      <img
+                        src={newCategoryImage}
+                        alt="Category preview"
+                        style={{ width: "52px", height: "52px", borderRadius: "8px", objectFit: "cover", border: "1px solid #cbd5e1" }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "12px", fontWeight: 700, color: "#166534" }}>✓ Photo Selected</div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>Category image ready to save</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => categoryFileInputRef.current?.click()}
+                        style={{ background: "#ecf5e7", color: "#166534", border: "1px solid #c8e2bd", padding: "6px 12px", borderRadius: "6px", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}
+                      >
+                        Change Photo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewCategoryImage("")}
+                        title="Remove image"
+                        style={{ background: "#fee2e2", color: "#dc2626", border: "none", width: "28px", height: "28px", borderRadius: "6px", display: "grid", placeItems: "center", cursor: "pointer" }}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                        <button
+                          type="button"
+                          onClick={() => categoryFileInputRef.current?.click()}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            background: "#ffffff",
+                            border: "1.5px dashed #22c55e",
+                            borderRadius: "8px",
+                            padding: "9px 14px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            color: "#166534",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap"
+                          }}
+                        >
+                          <Upload size={14} /> Upload Image (ফাইল ব্রাউজ)
+                        </button>
+                        <input
+                          type="url"
+                          placeholder="Or paste image URL (https://...)"
+                          value={newCategoryImage}
+                          onChange={(e) => setNewCategoryImage(e.target.value)}
+                          style={{ flex: 1, padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box", background: "#fff" }}
+                        />
+                      </div>
+
+                      {/* Quick Sample Presets */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>Quick Sample:</span>
+                        {[
+                          { label: "Spices", img: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=450&auto=format&fit=crop&q=80" },
+                          { label: "Seafood", img: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=450&auto=format&fit=crop&q=80" },
+                          { label: "Meat", img: "https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=450&auto=format&fit=crop&q=80" },
+                          { label: "Snacks", img: "https://images.unsplash.com/photo-1621996346565-e3d5d6281292?w=450&auto=format&fit=crop&q=80" },
+                          { label: "Drinks", img: "https://images.unsplash.com/photo-1544145945-f90425340c7e?w=450&auto=format&fit=crop&q=80" }
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => setNewCategoryImage(preset.img)}
+                            style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "3px 8px", fontSize: "11px", color: "#334155", cursor: "pointer" }}
+                          >
+                            + {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "10px 22px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Plus size={15} /> Save New Category (ক্যাটাগরি যুক্ত করুন)
+                  </button>
+                </div>
               </form>
 
-              {/* Existing Categories List */}
+              {/* Existing Categories List with Photos */}
               <div>
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "8px" }}>
-                  Active Categories ({categories.length})
+                  Active Categories with Photos ({categories.length})
                 </label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", maxHeight: "200px", overflowY: "auto", padding: "4px 0" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", maxHeight: "220px", overflowY: "auto", padding: "4px 0" }}>
                   {categories.map((c) => {
-                    const count = products.filter(p => p.category === c).length;
+                    const cName = getCatName(c);
+                    const cImg = getCatImage(c);
+                    const count = products.filter(p => p.category === cName).length;
                     return (
                       <div
-                        key={c}
+                        key={cName}
                         style={{
                           display: "inline-flex",
                           alignItems: "center",
                           gap: "8px",
-                          background: "#f8fafc",
+                          background: "#ffffff",
                           border: "1px solid #e2e8f0",
                           borderRadius: "20px",
-                          padding: "6px 12px",
+                          padding: "4px 10px 4px 5px",
                           fontSize: "12px",
-                          color: "#1e293b"
+                          color: "#1e293b",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
                         }}
                       >
-                        <span style={{ fontWeight: 600 }}>{c}</span>
-                        <span style={{ fontSize: "10px", color: "#64748b", background: "#e2e8f0", borderRadius: "10px", padding: "1px 6px" }}>
-                          {count}
+                        {cImg ? (
+                          <img
+                            src={cImg}
+                            alt={cName}
+                            style={{ width: "24px", height: "24px", borderRadius: "50%", objectFit: "cover", border: "1px solid #cbd5e1" }}
+                          />
+                        ) : (
+                          <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#ecf5e7", color: "#2f6b1b", display: "grid", placeItems: "center", fontSize: "11px", fontWeight: 700 }}>
+                            {cName.charAt(0)}
+                          </div>
+                        )}
+                        <span style={{ fontWeight: 600 }}>{cName}</span>
+                        <span style={{ fontSize: "10px", color: "#64748b", background: "#f1f5f9", borderRadius: "10px", padding: "1px 6px" }}>
+                          {count} items
                         </span>
                         {categories.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleDeleteCategory(c)}
-                            title={`Delete category "${c}"`}
+                            title={`Delete category "${cName}"`}
                             style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: "0 2px", display: "grid", placeItems: "center" }}
                             onMouseEnter={(e) => e.currentTarget.style.color = "#dc2626"}
                             onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
