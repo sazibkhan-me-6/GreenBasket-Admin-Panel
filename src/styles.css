@@ -3293,3 +3293,34 @@ footer {
 .cust-avatar.blocked {
   background: linear-gradient(135deg, #991b1b, #ef4444);
 }
+
+/* Delivery Employee Monthly Payout & Calendar Styles */
+.delivery-calculator-card {
+  transition: all 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .delivery-calculator-card {
+    padding: 14px !important;
+  }
+}
+
+@media print {
+  .sidebar,
+  .topbar,
+  .order-modal-backdrop,
+  .catalog-head button,
+  .btn {
+    display: none !important;
+  }
+  .app-body {
+    display: block !important;
+  }
+  .orders,
+  .delivery-calculator-card {
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

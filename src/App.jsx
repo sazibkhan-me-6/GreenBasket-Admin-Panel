@@ -58,7 +58,11 @@ import {
   LocateFixed,
   BatteryCharging,
   Compass,
-  Gauge
+  Gauge,
+  ChevronLeft,
+  CalendarDays,
+  Wallet,
+  Calculator
 } from "lucide-react";
 
 const initialProducts = [
@@ -195,6 +199,43 @@ const initialProducts = [
     stock: 15
   }
 ];
+
+export const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+export const MONTH_NAMES_BN = [
+  "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+  "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর"
+];
+
+export const parseOrderDate = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  const parts = String(dateStr).split(" ");
+  if (parts.length >= 3) {
+    const fallback = new Date(`${parts[0]} ${parts[1]} ${parts[2]}`);
+    if (!isNaN(fallback.getTime())) return fallback;
+  }
+  return null;
+};
+
+export const getOrderProductCount = (order) => {
+  if (!order || !order.items) return 1;
+  if (Array.isArray(order.items)) {
+    return order.items.reduce((sum, it) => sum + (Number(it.quantity) || 1), 0);
+  }
+  if (typeof order.items === "string") {
+    const matches = [...order.items.matchAll(/\((\d+)\)/g)];
+    if (matches.length > 0) {
+      return matches.reduce((sum, m) => sum + parseInt(m[1], 10), 0);
+    }
+    const parts = order.items.split(",").filter((s) => s.trim().length > 0);
+    return Math.max(1, parts.length);
+  }
+  return 1;
+};
 
 export const DEFAULT_RIDER_LOCATIONS = {
   "EMP-101": {
@@ -1071,6 +1112,37 @@ function App() {
   const [mapRiderJitter, setMapRiderJitter] = useState({ lat: 0, lng: 0 });
   const [lastGpsPingTime, setLastGpsPingTime] = useState("Just now");
   const trackingMapRef = useRef(null);
+
+  // Analytics Delivery Employee Monthly Payout & Calendar States
+  const [analyticsMonth, setAnalyticsMonth] = useState(10); // 10 = November
+  const [analyticsYear, setAnalyticsYear] = useState(2026);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
+  const [deliveryFeeRate, setDeliveryFeeRate] = useState(5.0);
+  const [onlyDeliveredFilter, setOnlyDeliveredFilter] = useState(true);
+  const [selectedRiderDetails, setSelectedRiderDetails] = useState(null);
+  const [deliveryPayoutStatuses, setDeliveryPayoutStatuses] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_delivery_payouts");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleRiderPayoutStatus = (payoutKey) => {
+    setDeliveryPayoutStatuses((prev) => {
+      const next = {
+        ...prev,
+        [payoutKey]: prev[payoutKey] === "Paid" ? "Pending" : "Paid"
+      };
+      try {
+        localStorage.setItem("greenbasket_delivery_payouts", JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+  };
 
   const handleRefreshGps = () => {
     setIsGpsRefreshing(true);
@@ -2733,6 +2805,93 @@ function App() {
         o.riderName &&
         o.riderName.toLowerCase().includes(activeRider.name.toLowerCase())
     );
+
+  // Analytics: Monthly Delivery & Charge Calculations
+  const monthlyOrders = orders.filter((o) => {
+    const d = parseOrderDate(o.date);
+    if (!d) return false;
+    return d.getFullYear() === analyticsYear && d.getMonth() === analyticsMonth;
+  });
+
+  const activePeriodOrders = selectedCalendarDay
+    ? monthlyOrders.filter((o) => {
+        const d = parseOrderDate(o.date);
+        return d && d.getDate() === selectedCalendarDay;
+      })
+    : monthlyOrders;
+
+  const qualifyingOrders = activePeriodOrders.filter((o) => {
+    if (!onlyDeliveredFilter) return true;
+    return o.status === "Delivered" || o.trackingStage === "delivered";
+  });
+
+  const daysInSelectedMonth = new Date(analyticsYear, analyticsMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(analyticsYear, analyticsMonth, 1).getDay();
+
+  const ordersByDay = {};
+  monthlyOrders.forEach((o) => {
+    const d = parseOrderDate(o.date);
+    if (!d) return;
+    const day = d.getDate();
+    if (!ordersByDay[day]) ordersByDay[day] = [];
+    ordersByDay[day].push(o);
+  });
+
+  const deliveryStaffList = employees.filter(
+    (e) =>
+      e.department === "Logistics & Delivery" ||
+      (e.role && e.role.toLowerCase().includes("delivery")) ||
+      (e.role && e.role.toLowerCase().includes("rider"))
+  );
+
+  const riderNamesSet = new Set(deliveryStaffList.map((e) => e.name));
+  monthlyOrders.forEach((o) => {
+    if (o.riderName && o.riderName !== "Pending Assignment") {
+      riderNamesSet.add(o.riderName);
+    }
+  });
+
+  const riderDeliveryStats = [...riderNamesSet]
+    .map((riderName) => {
+      const emp = deliveryStaffList.find(
+        (e) => e.name.toLowerCase().trim() === riderName.toLowerCase().trim()
+      );
+      const riderOrders = qualifyingOrders.filter(
+        (o) => o.riderName && o.riderName.toLowerCase().trim() === riderName.toLowerCase().trim()
+      );
+      const deliveredCount = riderOrders.length;
+      const totalProducts = riderOrders.reduce((sum, o) => sum + getOrderProductCount(o), 0);
+      const totalChargeEarned = Number((deliveredCount * deliveryFeeRate).toFixed(2));
+      const payoutKey = `${emp?.id || riderName}_${analyticsYear}_${analyticsMonth}`;
+      const payoutStatus =
+        deliveryPayoutStatuses[payoutKey] || (deliveredCount > 0 ? "Pending" : "None");
+
+      return {
+        riderName,
+        empId: emp?.id || "RIDER",
+        role: emp?.role || "Delivery Rider",
+        vehicle: emp?.vehicleType || "Delivery Vehicle",
+        phone: emp?.phone || riderOrders[0]?.riderPhone || "",
+        image: emp?.image || null,
+        deliveredOrdersCount: deliveredCount,
+        totalProductsDelivered: totalProducts,
+        deliveryChargeEarned: totalChargeEarned,
+        payoutKey,
+        payoutStatus,
+        orders: riderOrders
+      };
+    })
+    .sort((a, b) => b.deliveredOrdersCount - a.deliveredOrdersCount);
+
+  const totalMonthlyDeliveredOrders = qualifyingOrders.length;
+  const totalMonthlyProductsDelivered = qualifyingOrders.reduce(
+    (sum, o) => sum + getOrderProductCount(o),
+    0
+  );
+  const totalMonthlyDeliveryCharges = Number(
+    (totalMonthlyDeliveredOrders * deliveryFeeRate).toFixed(2)
+  );
+  const activeRidersCount = riderDeliveryStats.filter((r) => r.deliveredOrdersCount > 0).length;
 
   const filteredAdmins = registeredUsers.map((u, idx) => ({
     id: u.id || ("ADM-" + String(idx + 1).padStart(3, "0")),
@@ -5460,9 +5619,652 @@ function App() {
         {/* TAB 3: STORE ANALYTICS */}
         {tab === "analytics" && (
           <div className="orders" style={{ padding: "24px" }}>
-            <div className="catalog-head" style={{ marginTop: 0 }}>
-              <h3>Store Analytics & Performance Overview</h3>
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+              <div>
+                <span className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <TrendingUp size={13} /> PERFORMANCE METRICS & PAYOUT INTELLIGENCE
+                </span>
+                <h3 style={{ margin: "4px 0 0" }}>Store Analytics & Rider Delivery Payout Hub</h3>
+                <p style={{ margin: "4px 0 0", color: "#62755c", fontSize: "13px" }}>
+                  রাইডারদের ডেলিভারি ও প্রোডাক্ট পারফরম্যান্স হিসাব এবং ক্যালেন্ডারের মাধ্যমে মান্থলি ডেলিভারি চার্জ ক্যালকুলেটর।
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="btn btn-secondary"
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  title="Print monthly delivery and payout statement"
+                >
+                  <Printer size={13} /> Print Monthly Statement
+                </button>
+              </div>
             </div>
+
+            {/* =========================================================================
+                SECTION 1: MONTHLY DELIVERY & DELIVERY CHARGE CALCULATOR WITH CALENDAR
+               ========================================================================= */}
+            <div
+              className="delivery-calculator-card"
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "16px",
+                padding: "22px",
+                marginTop: "18px",
+                marginBottom: "24px",
+                boxShadow: "0 2px 10px rgba(0,0,0,0.03)"
+              }}
+            >
+              {/* Header & Controls Toolbar */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "14px",
+                  paddingBottom: "16px",
+                  borderBottom: "1px solid #f1f5f9"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "12px",
+                      background: "linear-gradient(135deg, #2b6118, #3b82f6)",
+                      display: "grid",
+                      placeItems: "center",
+                      color: "#ffffff",
+                      boxShadow: "0 2px 8px rgba(43,97,24,0.3)"
+                    }}
+                  >
+                    <CalendarDays size={22} />
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "8px" }}>
+                      Delivery Employee Monthly Payout & Product Calculator
+                    </h4>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>
+                      কে কয়টা প্রোডাক্ট ডেলিভারি দিল এবং মোট ডেলিভারি চার্জ কত পাবে তার ক্যালেন্ডারভিত্তিক হিসাব
+                    </span>
+                  </div>
+                </div>
+
+                {/* Month Navigator & Rate Controls */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                  {/* Month Switcher */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      background: "#f8fafc",
+                      border: "1px solid #cbd5e1",
+                      borderRadius: "10px",
+                      padding: "4px 8px"
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (analyticsMonth === 0) {
+                          setAnalyticsMonth(11);
+                          setAnalyticsYear(analyticsYear - 1);
+                        } else {
+                          setAnalyticsMonth(analyticsMonth - 1);
+                        }
+                        setSelectedCalendarDay(null);
+                      }}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", color: "#475569", padding: "4px" }}
+                      title="Previous Month"
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+
+                    <select
+                      value={analyticsMonth}
+                      onChange={(e) => {
+                        setAnalyticsMonth(parseInt(e.target.value, 10));
+                        setSelectedCalendarDay(null);
+                      }}
+                      style={{ border: "none", background: "transparent", fontWeight: 700, fontSize: "12.5px", color: "#1e293b", outline: "none", cursor: "pointer" }}
+                    >
+                      {MONTH_NAMES.map((m, idx) => (
+                        <option key={m} value={idx}>{m} ({MONTH_NAMES_BN[idx]})</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={analyticsYear}
+                      onChange={(e) => {
+                        setAnalyticsYear(parseInt(e.target.value, 10));
+                        setSelectedCalendarDay(null);
+                      }}
+                      style={{ border: "none", background: "transparent", fontWeight: 700, fontSize: "12.5px", color: "#1e293b", outline: "none", cursor: "pointer" }}
+                    >
+                      {[2024, 2025, 2026, 2027, 2028].map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (analyticsMonth === 11) {
+                          setAnalyticsMonth(0);
+                          setAnalyticsYear(analyticsYear + 1);
+                        } else {
+                          setAnalyticsMonth(analyticsMonth + 1);
+                        }
+                        setSelectedCalendarDay(null);
+                      }}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", color: "#475569", padding: "4px" }}
+                      title="Next Month"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  {/* Configurable Delivery Charge Rate */}
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      background: "#f0fdf4",
+                      border: "1px solid #bbf7d0",
+                      borderRadius: "10px",
+                      padding: "4px 10px"
+                    }}
+                    title="Delivery Charge Rate per completed delivery order"
+                  >
+                    <span style={{ fontSize: "11px", fontWeight: 700, color: "#166534" }}>Charge/Trip:</span>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#15803d" }}>$</span>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      value={deliveryFeeRate}
+                      onChange={(e) => setDeliveryFeeRate(Math.max(0, parseFloat(e.target.value) || 0))}
+                      style={{
+                        width: "55px",
+                        padding: "2px 4px",
+                        borderRadius: "6px",
+                        border: "1px solid #86efac",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                        textAlign: "center",
+                        color: "#166534",
+                        background: "#ffffff",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+
+                  {/* Filter: Delivered Only vs All */}
+                  <label
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "11.5px",
+                      fontWeight: 600,
+                      color: "#475569",
+                      cursor: "pointer",
+                      userSelect: "none"
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={onlyDeliveredFilter}
+                      onChange={(e) => setOnlyDeliveredFilter(e.target.checked)}
+                      style={{ cursor: "pointer", accentColor: "#2b6118" }}
+                    />
+                    Delivered Orders Only
+                  </label>
+                </div>
+              </div>
+
+              {/* Monthly KPI Overview Cards */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                  gap: "14px",
+                  marginTop: "16px",
+                  marginBottom: "20px"
+                }}
+              >
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Total Delivered Orders</span>
+                    <Package size={18} color="#2563eb" />
+                  </div>
+                  <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#1e293b", fontWeight: 800 }}>
+                    {totalMonthlyDeliveredOrders} <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>orders</span>
+                  </h3>
+                  <small style={{ fontSize: "11px", color: "#64748b" }}>
+                    {MONTH_NAMES[analyticsMonth]} {analyticsYear} {selectedCalendarDay ? `(Day ${selectedCalendarDay})` : "(Full Month)"}
+                  </small>
+                </div>
+
+                <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>Total Products Delivered</span>
+                    <ShoppingBag size={18} color="#16a34a" />
+                  </div>
+                  <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#15803d", fontWeight: 800 }}>
+                    {totalMonthlyProductsDelivered} <span style={{ fontSize: "12px", fontWeight: 600, color: "#166534" }}>units/items</span>
+                  </h3>
+                  <small style={{ fontSize: "11px", color: "#166534" }}>
+                    মোট ডেলিভারিকৃত পণ্যের পরিমাণ
+                  </small>
+                </div>
+
+                <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "12px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "12px", color: "#854d0e", fontWeight: 600 }}>Total Delivery Charge</span>
+                    <Wallet size={18} color="#ca8a04" />
+                  </div>
+                  <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#854d0e", fontWeight: 800 }}>
+                    ${totalMonthlyDeliveryCharges.toFixed(2)}
+                  </h3>
+                  <small style={{ fontSize: "11px", color: "#854d0e" }}>
+                    ${deliveryFeeRate.toFixed(2)} × {totalMonthlyDeliveredOrders} deliveries
+                  </small>
+                </div>
+
+                <div style={{ background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: "12px", padding: "14px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "12px", color: "#6b21a8", fontWeight: 600 }}>Active Riders</span>
+                    <Truck size={18} color="#7c3aed" />
+                  </div>
+                  <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#6b21a8", fontWeight: 800 }}>
+                    {activeRidersCount} <span style={{ fontSize: "12px", fontWeight: 600, color: "#6b21a8" }}>riders</span>
+                  </h3>
+                  <small style={{ fontSize: "11px", color: "#6b21a8" }}>
+                    অর্ডার সম্পাদনকারী ডেলিভারি কর্মী
+                  </small>
+                </div>
+              </div>
+
+              {/* CALENDAR VIEW GRID */}
+              <div style={{ marginBottom: "22px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "14px", padding: "16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                  <div>
+                    <b style={{ fontSize: "13px", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Calendar size={14} color="#2b6118" /> {MONTH_NAMES[analyticsMonth]} {analyticsYear} - Interactive Delivery Calendar
+                    </b>
+                    <small style={{ fontSize: "11.5px", color: "#64748b" }}>
+                      যেকোনো তারিখে ক্লিক করে ওই দিনের নির্দিষ্ট ডেলিভারি ও চার্জ দেখতে পারেন
+                    </small>
+                  </div>
+
+                  {selectedCalendarDay && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedCalendarDay(null)}
+                      style={{
+                        background: "#2b6118",
+                        color: "#ffffff",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "4px 10px",
+                        fontSize: "11.5px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px"
+                      }}
+                    >
+                      <X size={12} /> Show Full Month (All Days)
+                    </button>
+                  )}
+                </div>
+
+                {/* 7 Days of Week Header */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px", textAlign: "center", marginBottom: "6px" }}>
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((dayName) => (
+                    <div key={dayName} style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", padding: "4px" }}>
+                      {dayName}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Days Grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "6px" }}>
+                  {/* Empty cells before day 1 */}
+                  {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
+                    <div key={`empty-${idx}`} style={{ minHeight: "65px", background: "transparent", opacity: 0.3 }} />
+                  ))}
+
+                  {/* Days of Month */}
+                  {Array.from({ length: daysInSelectedMonth }).map((_, idx) => {
+                    const day = idx + 1;
+                    const dayOrders = ordersByDay[day] || [];
+                    const deliveredOrders = dayOrders.filter((o) => o.status === "Delivered" || o.trackingStage === "delivered");
+                    const activeCount = onlyDeliveredFilter ? deliveredOrders.length : dayOrders.length;
+                    const productsOnDay = (onlyDeliveredFilter ? deliveredOrders : dayOrders).reduce(
+                      (sum, o) => sum + getOrderProductCount(o),
+                      0
+                    );
+                    const isSelected = selectedCalendarDay === day;
+                    const hasDeliveries = activeCount > 0;
+
+                    return (
+                      <div
+                        key={day}
+                        onClick={() => setSelectedCalendarDay(isSelected ? null : day)}
+                        style={{
+                          minHeight: "72px",
+                          background: isSelected ? "#ecfdf5" : hasDeliveries ? "#ffffff" : "#fbfcfe",
+                          border: isSelected ? "2px solid #16a34a" : hasDeliveries ? "1px solid #86efac" : "1px solid #e2e8f0",
+                          borderRadius: "10px",
+                          padding: "6px 8px",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "space-between",
+                          boxShadow: isSelected ? "0 2px 8px rgba(22,163,74,0.2)" : "none"
+                        }}
+                        title={hasDeliveries ? `${day} ${MONTH_NAMES[analyticsMonth]}: ${activeCount} orders, ${productsOnDay} products, ${(activeCount * deliveryFeeRate).toFixed(2)} delivery charge` : `${day} ${MONTH_NAMES[analyticsMonth]}: No deliveries`}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: isSelected ? "#15803d" : "#334155" }}>
+                            {day}
+                          </span>
+                          {hasDeliveries && (
+                            <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: "#22c55e" }} />
+                          )}
+                        </div>
+
+                        {hasDeliveries ? (
+                          <div style={{ marginTop: "4px" }}>
+                            <div style={{ background: "#dcfce7", color: "#15803d", fontSize: "10px", fontWeight: 700, padding: "1px 4px", borderRadius: "6px", textAlign: "center", marginBottom: "2px" }}>
+                              📦 {activeCount} deliv.
+                            </div>
+                            <div style={{ fontSize: "9.5px", color: "#166534", fontWeight: 600, textAlign: "center" }}>
+                              🥦 {productsOnDay} items
+                            </div>
+                            <div style={{ fontSize: "9.5px", color: "#047857", fontWeight: 700, textAlign: "center" }}>
+                              +${(activeCount * deliveryFeeRate).toFixed(0)} fee
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: "10px", color: "#94a3b8", textAlign: "center" }}>-</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* RIDER-BY-RIDER PERFORMANCE & DELIVERY CHARGE BREAKDOWN TABLE */}
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", overflow: "hidden" }}>
+                <div style={{ padding: "14px 18px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14.5px", color: "#0f172a", fontWeight: 700, display: "flex", alignItems: "center", gap: "6px" }}>
+                      <Truck size={16} color="#2b6118" /> Delivery Personnel Payout & Products Summary
+                    </h4>
+                    <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                      {MONTH_NAMES[analyticsMonth]} {analyticsYear} {selectedCalendarDay ? `• Filtering Day ${selectedCalendarDay}` : "• Full Month"} ({riderDeliveryStats.length} riders evaluated)
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, color: "#166534", background: "#dcfce7", padding: "4px 10px", borderRadius: "20px" }}>
+                      Total Payout: ${totalMonthlyDeliveryCharges.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "750px", fontSize: "12.5px" }}>
+                    <thead>
+                      <tr style={{ background: "#f1f5f9", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>DELIVERY EMPLOYEE</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>DELIVERED ORDERS</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>PRODUCTS DELIVERED</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>RATE PER ORDER</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>DELIVERY CHARGE (পাবে)</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569" }}>PAYOUT STATUS</th>
+                        <th style={{ padding: "10px 14px", fontWeight: 700, color: "#475569", textAlign: "center" }}>ACTION</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {riderDeliveryStats.map((r, idx) => {
+                        return (
+                          <tr key={r.riderName} style={{ borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "#ffffff" : "#fbfcfe" }}>
+                            {/* Employee Info */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                {r.image ? (
+                                  <img src={r.image} alt={r.riderName} style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover" }} />
+                                ) : (
+                                  <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#2b6118", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: "13px" }}>
+                                    {r.riderName.charAt(0)}
+                                  </div>
+                                )}
+                                <div>
+                                  <b style={{ color: "#1e293b", fontSize: "13px", display: "block" }}>{r.riderName}</b>
+                                  <small style={{ color: "#64748b", fontSize: "11px" }}>{r.role} • {r.vehicle}</small>
+                                  {r.phone && (
+                                    <div style={{ fontSize: "10.5px", color: "#2b6118" }}>{r.phone}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Orders Delivered */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  fontWeight: 700,
+                                  fontSize: "12px",
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
+                                  background: r.deliveredOrdersCount > 0 ? "#eff6ff" : "#f1f5f9",
+                                  color: r.deliveredOrdersCount > 0 ? "#1d4ed8" : "#94a3b8"
+                                }}
+                              >
+                                <Package size={12} /> {r.deliveredOrdersCount} Orders
+                              </span>
+                            </td>
+
+                            {/* Products Delivered */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  fontWeight: 700,
+                                  fontSize: "12px",
+                                  padding: "3px 8px",
+                                  borderRadius: "12px",
+                                  background: r.totalProductsDelivered > 0 ? "#ecfdf5" : "#f1f5f9",
+                                  color: r.totalProductsDelivered > 0 ? "#059669" : "#94a3b8"
+                                }}
+                              >
+                                <ShoppingBag size={12} /> {r.totalProductsDelivered} Items/Units
+                              </span>
+                            </td>
+
+                            {/* Rate */}
+                            <td style={{ padding: "12px 14px", color: "#64748b", fontWeight: 600 }}>
+                              ${deliveryFeeRate.toFixed(2)} / trip
+                            </td>
+
+                            {/* Delivery Charge Earned */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <b style={{ fontSize: "14px", color: r.deliveryChargeEarned > 0 ? "#15803d" : "#94a3b8" }}>
+                                ${r.deliveryChargeEarned.toFixed(2)}
+                              </b>
+                            </td>
+
+                            {/* Payout Status */}
+                            <td style={{ padding: "12px 14px" }}>
+                              {r.deliveredOrdersCount > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleRiderPayoutStatus(r.payoutKey)}
+                                  style={{
+                                    border: "none",
+                                    borderRadius: "12px",
+                                    padding: "4px 10px",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    background: r.payoutStatus === "Paid" ? "#dcfce7" : "#fef3c7",
+                                    color: r.payoutStatus === "Paid" ? "#15803d" : "#b45309",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  }}
+                                  title="Click to toggle Paid / Pending payout status"
+                                >
+                                  {r.payoutStatus === "Paid" ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                                  {r.payoutStatus === "Paid" ? "Paid" : "Pending Payout"}
+                                </button>
+                              ) : (
+                                <span style={{ color: "#94a3b8", fontSize: "11px" }}>No Deliveries</span>
+                              )}
+                            </td>
+
+                            {/* Action */}
+                            <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                              {r.orders.length > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedRiderDetails(r)}
+                                  style={{
+                                    background: "#f0fdf4",
+                                    border: "1px solid #bbf7d0",
+                                    color: "#15803d",
+                                    padding: "4px 10px",
+                                    borderRadius: "6px",
+                                    fontSize: "11px",
+                                    fontWeight: 600,
+                                    cursor: "pointer"
+                                  }}
+                                >
+                                  View Orders ({r.orders.length})
+                                </button>
+                              ) : (
+                                <span style={{ color: "#cbd5e1", fontSize: "11px" }}>-</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* DETAILS MODAL FOR SELECTED RIDER'S ORDERS */}
+              {selectedRiderDetails && (
+                <div className="order-modal-backdrop" onClick={() => setSelectedRiderDetails(null)}>
+                  <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "680px" }}>
+                    <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1b3d12, #295b1b)" }}>
+                      <div className="order-modal-title">
+                        <span className="modal-eyebrow" style={{ color: "#bbf7d0" }}>DELIVERY STATEMENT & ORDER BREAKDOWN</span>
+                        <h3 style={{ color: "#fff" }}>{selectedRiderDetails.riderName}'s Delivered Orders</h3>
+                        <small style={{ color: "#dcfce7" }}>
+                          {MONTH_NAMES[analyticsMonth]} {analyticsYear} • Total Earned: ${selectedRiderDetails.deliveryChargeEarned.toFixed(2)}
+                        </small>
+                      </div>
+                      <button
+                        type="button"
+                        className="modal-close-btn"
+                        onClick={() => setSelectedRiderDetails(null)}
+                        style={{ color: "#fff" }}
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <div className="order-modal-body" style={{ maxHeight: "68vh", overflowY: "auto", padding: "18px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "10px", marginBottom: "16px" }}>
+                        <div style={{ background: "#f8fafc", padding: "10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                          <span style={{ fontSize: "11px", color: "#64748b" }}>Delivered Orders</span>
+                          <b style={{ display: "block", fontSize: "16px", color: "#1e293b" }}>{selectedRiderDetails.deliveredOrdersCount}</b>
+                        </div>
+                        <div style={{ background: "#f0fdf4", padding: "10px", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                          <span style={{ fontSize: "11px", color: "#166534" }}>Products Delivered</span>
+                          <b style={{ display: "block", fontSize: "16px", color: "#15803d" }}>{selectedRiderDetails.totalProductsDelivered} items</b>
+                        </div>
+                        <div style={{ background: "#fefce8", padding: "10px", borderRadius: "8px", border: "1px solid #fef08a" }}>
+                          <span style={{ fontSize: "11px", color: "#854d0e" }}>Delivery Charge Payable</span>
+                          <b style={{ display: "block", fontSize: "16px", color: "#854d0e" }}>${selectedRiderDetails.deliveryChargeEarned.toFixed(2)}</b>
+                        </div>
+                      </div>
+
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#334155", display: "block", marginBottom: "8px" }}>
+                        Itemized Orders Delivered in this Period:
+                      </span>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {selectedRiderDetails.orders.map((o) => {
+                          const pCount = getOrderProductCount(o);
+                          return (
+                            <div key={o.id} style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" }}>
+                              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <b style={{ fontSize: "12.5px", color: "#1e3b14" }}>Order #{o.id}</b>
+                                <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#15803d" }}>
+                                  +${deliveryFeeRate.toFixed(2)} charge
+                                </span>
+                              </div>
+                              <div style={{ fontSize: "11.5px", color: "#64748b", margin: "2px 0" }}>
+                                📅 {o.date} • Customer: <b>{o.customer}</b> ({o.address})
+                              </div>
+                              <div style={{ fontSize: "11.5px", color: "#334155", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px", marginTop: "4px" }}>
+                                <b>Products ({pCount}):</b> {typeof o.items === "string" ? o.items : JSON.stringify(o.items)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="order-modal-foot" style={{ display: "flex", justifyContent: "space-between" }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleRiderPayoutStatus(selectedRiderDetails.payoutKey)}
+                        className="soft"
+                        style={{
+                          background: selectedRiderDetails.payoutStatus === "Paid" ? "#fef3c7" : "#dcfce7",
+                          color: selectedRiderDetails.payoutStatus === "Paid" ? "#b45309" : "#15803d",
+                          fontWeight: 700
+                        }}
+                      >
+                        {selectedRiderDetails.payoutStatus === "Paid" ? "Mark as Pending" : "Mark as Paid ✓"}
+                      </button>
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={() => setSelectedRiderDetails(null)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* =========================================================================
+                SECTION 2: GENERAL STORE PERFORMANCE OVERVIEW
+               ========================================================================= */}
 
             <div
               style={{
