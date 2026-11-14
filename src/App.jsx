@@ -62,7 +62,12 @@ import {
   ChevronLeft,
   CalendarDays,
   Wallet,
-  Calculator
+  Calculator,
+  Headphones,
+  MessageSquare,
+  LifeBuoy,
+  PhoneCall,
+  MessageCircle
 } from "lucide-react";
 
 const initialProducts = [
@@ -526,6 +531,142 @@ export const initialEmployees = [
     joinDate: "Jan 01, 2026",
     vehicleType: "Company Vehicle",
     nid: "1991269112233"
+  }
+];
+
+export const QUICK_REPLY_TEMPLATES = [
+  "Hello! Your delivery rider is en route and will arrive shortly.",
+  "আপনার অর্ডারটি ডেলিভারির পথে রয়েছে, রাইডার খুব শীঘ্রই পৌঁছাবে।",
+  "We have verified your payment and updated your order status to Paid.",
+  "আপনার পেমেন্ট সফলভাবে ভেরিফাই করা হয়েছে।",
+  "We are truly sorry for the inconvenience. Our operations team is resolving this immediately.",
+  "আপনার সমস্যার সমাধান করা হয়েছে। আর কোনো সহায়তা প্রয়োজন হলে অনুগ্রহ করে জানাবেন।"
+];
+
+export const initialSupportTickets = [
+  {
+    id: "TKT-201",
+    customer: "Sazib Ahmed",
+    phone: "+880 1712-345678",
+    email: "sazib.ahmed@gmail.com",
+    orderId: "GB-1930",
+    channel: "WhatsApp",
+    category: "Order & Delivery",
+    priority: "Urgent",
+    status: "Open",
+    subject: "When will my organic avocados & farm milk arrive?",
+    assignedAgent: "Farhana Akter",
+    createdAt: "Nov 14, 2026 06:30",
+    updatedAt: "Nov 14, 2026 06:45",
+    messages: [
+      {
+        id: "msg-1",
+        sender: "customer",
+        senderName: "Sazib Ahmed",
+        text: "Hello, I placed order #GB-1930 this morning for Dhanmondi. Could you please let me know the estimated delivery time?",
+        time: "06:30 AM"
+      },
+      {
+        id: "msg-2",
+        sender: "agent",
+        senderName: "Farhana Akter",
+        text: "Hello Sazib! Thank you for contacting GreenBasket Support. Your rider Karim Mia is currently en route on Lake Circus Road. Estimated arrival is within 15 minutes.",
+        time: "06:45 AM"
+      }
+    ]
+  },
+  {
+    id: "TKT-202",
+    customer: "Farhana Yasmin",
+    phone: "+880 1912-345678",
+    email: "farhana.y@gmail.com",
+    orderId: "GB-1927",
+    channel: "Phone Call",
+    category: "Order & Delivery",
+    priority: "High",
+    status: "In Progress",
+    subject: "Request to change delivery drop-off point to Gulshan-2 Club Road",
+    assignedAgent: "Sazib Khan",
+    createdAt: "Nov 13, 2026 15:45",
+    updatedAt: "Nov 13, 2026 16:00",
+    messages: [
+      {
+        id: "msg-1",
+        sender: "customer",
+        senderName: "Farhana Yasmin",
+        text: "Hi, I need to update my delivery drop-off point to Apartment 5B, Road 62 near Gulshan Club. Please inform rider Sohanur Rahman.",
+        time: "03:45 PM"
+      },
+      {
+        id: "msg-2",
+        sender: "agent",
+        senderName: "Sazib Khan",
+        text: "We have relayed the new address to rider Sohanur Rahman. He has acknowledged and is heading directly there.",
+        time: "04:00 PM"
+      }
+    ]
+  },
+  {
+    id: "TKT-203",
+    customer: "Rahim Chowdhury",
+    phone: "+880 1819-223344",
+    email: "rahim.c@outlook.com",
+    orderId: "GB-1929",
+    channel: "Website",
+    category: "Payment & Refund",
+    priority: "Medium",
+    status: "Resolved",
+    subject: "Query regarding bKash transaction verification",
+    assignedAgent: "Farhana Akter",
+    createdAt: "Nov 12, 2026 11:10",
+    updatedAt: "Nov 12, 2026 11:30",
+    messages: [
+      {
+        id: "msg-1",
+        sender: "customer",
+        senderName: "Rahim Chowdhury",
+        text: "I sent bKash payment with TrxID 9K8L7M6N. Can you confirm if my order is marked Paid?",
+        time: "11:10 AM"
+      },
+      {
+        id: "msg-2",
+        sender: "agent",
+        senderName: "Farhana Akter",
+        text: "Yes, we received and verified TrxID 9K8L7M6N. Your order is confirmed Paid and packed for dispatch.",
+        time: "11:30 AM"
+      }
+    ]
+  },
+  {
+    id: "TKT-204",
+    customer: "Nusrat Jahan",
+    phone: "+880 1722-998877",
+    email: "nusrat.j@yahoo.com",
+    orderId: "",
+    channel: "Email",
+    category: "General Inquiry",
+    priority: "Low",
+    status: "Closed",
+    subject: "Do you supply fresh organic dragon fruits and honey in bulk?",
+    assignedAgent: "Sazib Khan",
+    createdAt: "Nov 10, 2026 09:20",
+    updatedAt: "Nov 10, 2026 10:00",
+    messages: [
+      {
+        id: "msg-1",
+        sender: "customer",
+        senderName: "Nusrat Jahan",
+        text: "Hello GreenBasket team, we run a cafe in Banani and would like to order fresh dragon fruits and organic honey weekly.",
+        time: "09:20 AM"
+      },
+      {
+        id: "msg-2",
+        sender: "agent",
+        senderName: "Sazib Khan",
+        text: "Hello Nusrat! Yes, we have dedicated B2B wholesale pricing. Our manager has sent our catalog to your email nusrat.j@yahoo.com.",
+        time: "10:00 AM"
+      }
+    ]
   }
 ];
 
@@ -1113,7 +1254,165 @@ function App() {
   const [lastGpsPingTime, setLastGpsPingTime] = useState("Just now");
   const trackingMapRef = useRef(null);
 
-  // Analytics Delivery Employee Monthly Payout & Calendar States
+  // Customer Support System States
+  const [supportTickets, setSupportTickets] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_support_tickets");
+      return saved ? JSON.parse(saved) : initialSupportTickets;
+    } catch {
+      return initialSupportTickets;
+    }
+  });
+  const [supportSearch, setSupportSearch] = useState("");
+  const [supportStatusFilter, setSupportStatusFilter] = useState("All");
+  const [supportPriorityFilter, setSupportPriorityFilter] = useState("All");
+  const [supportCategoryFilter, setSupportCategoryFilter] = useState("All");
+  const [activeTicketForModal, setActiveTicketForModal] = useState(null);
+  const [newTicketModalOpen, setNewTicketModalOpen] = useState(false);
+  const [ticketReplyText, setTicketReplyText] = useState("");
+  const [newTicketForm, setNewTicketForm] = useState({
+    customer: "",
+    phone: "",
+    email: "",
+    orderId: "",
+    channel: "WhatsApp",
+    category: "Order & Delivery",
+    priority: "High",
+    subject: "",
+    initialMessage: "",
+    assignedAgent: "Farhana Akter"
+  });
+
+  const handleCreateTicket = (e) => {
+    if (e) e.preventDefault();
+    if (!newTicketForm.customer.trim() || !newTicketForm.subject.trim()) {
+      alert("Please provide customer name and issue subject.");
+      return;
+    }
+    const newId = `TKT-${Math.floor(200 + Math.random() * 800)}`;
+    const newTicket = {
+      id: newId,
+      customer: newTicketForm.customer.trim(),
+      phone: newTicketForm.phone.trim() || "+880 1714-703406",
+      email: newTicketForm.email.trim() || "customer@greenbasket.com",
+      orderId: newTicketForm.orderId.trim(),
+      channel: newTicketForm.channel || "WhatsApp",
+      category: newTicketForm.category || "Order & Delivery",
+      priority: newTicketForm.priority || "High",
+      status: "Open",
+      subject: newTicketForm.subject.trim(),
+      assignedAgent: newTicketForm.assignedAgent || "Farhana Akter",
+      createdAt: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      updatedAt: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) + " " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      messages: [
+        {
+          id: "msg-" + Date.now(),
+          sender: "customer",
+          senderName: newTicketForm.customer.trim(),
+          text: newTicketForm.initialMessage.trim() || newTicketForm.subject.trim(),
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        }
+      ]
+    };
+    setSupportTickets((prev) => {
+      const next = [newTicket, ...prev];
+      try {
+        localStorage.setItem("greenbasket_support_tickets", JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+    setNewTicketModalOpen(false);
+    setNewTicketForm({
+      customer: "",
+      phone: "",
+      email: "",
+      orderId: "",
+      channel: "WhatsApp",
+      category: "Order & Delivery",
+      priority: "High",
+      subject: "",
+      initialMessage: "",
+      assignedAgent: "Farhana Akter"
+    });
+    triggerToast(`Support Ticket ${newId} created successfully!`);
+  };
+
+  const handleSendTicketReply = (ticketId, resolve = false) => {
+    if (!ticketReplyText.trim()) return;
+    const newMsg = {
+      id: "msg-" + Date.now(),
+      sender: "agent",
+      senderName: currentUser ? currentUser.name : "Support Specialist",
+      text: ticketReplyText.trim(),
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    };
+    setSupportTickets((prev) => {
+      const next = prev.map((t) => {
+        if (t.id !== ticketId) return t;
+        return {
+          ...t,
+          status: resolve ? "Resolved" : t.status === "Open" ? "In Progress" : t.status,
+          updatedAt:
+            new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) +
+            " " +
+            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          messages: [...(t.messages || []), newMsg]
+        };
+      });
+      try {
+        localStorage.setItem("greenbasket_support_tickets", JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+    setTicketReplyText("");
+    if (activeTicketForModal && activeTicketForModal.id === ticketId) {
+      setActiveTicketForModal((prev) => ({
+        ...prev,
+        status: resolve ? "Resolved" : prev.status === "Open" ? "In Progress" : prev.status,
+        messages: [...(prev.messages || []), newMsg]
+      }));
+    }
+    triggerToast(resolve ? "Reply sent & ticket marked as Resolved!" : "Reply sent to customer!");
+  };
+
+  const handleUpdateTicketStatus = (ticketId, newStatus) => {
+    setSupportTickets((prev) => {
+      const next = prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t));
+      try {
+        localStorage.setItem("greenbasket_support_tickets", JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+    if (activeTicketForModal && activeTicketForModal.id === ticketId) {
+      setActiveTicketForModal((prev) => ({ ...prev, status: newStatus }));
+    }
+    triggerToast(`Ticket status updated to ${newStatus}`);
+  };
+
+  const handleDeleteTicket = (ticketId) => {
+    if (!window.confirm("Are you sure you want to delete this customer support ticket?")) return;
+    setSupportTickets((prev) => {
+      const next = prev.filter((t) => t.id !== ticketId);
+      try {
+        localStorage.setItem("greenbasket_support_tickets", JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+    if (activeTicketForModal && activeTicketForModal.id === ticketId) {
+      setActiveTicketForModal(null);
+    }
+    triggerToast("Support ticket removed.");
+  };
+
+    // Analytics Delivery Employee Monthly Payout & Calendar States
   const [analyticsMonth, setAnalyticsMonth] = useState(10); // 10 = November
   const [analyticsYear, setAnalyticsYear] = useState(2026);
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
@@ -2767,7 +3066,27 @@ function App() {
     })
     .sort(sortOrdersRecentFirst);
 
-  const filteredEmployees = employees.filter((emp) => {
+  const filteredSupportTickets = supportTickets.filter((t) => {
+    const q = supportSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      t.id.toLowerCase().includes(q) ||
+      t.customer.toLowerCase().includes(q) ||
+      (t.phone && t.phone.toLowerCase().includes(q)) ||
+      (t.orderId && t.orderId.toLowerCase().includes(q)) ||
+      t.subject.toLowerCase().includes(q) ||
+      (t.assignedAgent && t.assignedAgent.toLowerCase().includes(q));
+
+    const matchStatus = supportStatusFilter === "All" || t.status === supportStatusFilter;
+    const matchPriority = supportPriorityFilter === "All" || t.priority === supportPriorityFilter;
+    const matchCategory = supportCategoryFilter === "All" || t.category === supportCategoryFilter;
+
+    return matchSearch && matchStatus && matchPriority && matchCategory;
+  });
+
+  const openTicketsCount = supportTickets.filter((t) => t.status === "Open" || t.status === "In Progress").length;
+
+    const filteredEmployees = employees.filter((emp) => {
     const q = employeeSearch.toLowerCase().trim();
     const matchSearch =
       !q ||
@@ -3108,6 +3427,20 @@ function App() {
             <UserCheck /> Customer Control
           </button>
           <button
+            className={tab === "support" ? "active" : ""}
+            onClick={() => {
+              setTab("support");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <Headphones /> Customer Support
+            {openTicketsCount > 0 && (
+              <span style={{ marginLeft: "auto", background: "#ef4444", color: "#ffffff", padding: "1px 6px", borderRadius: "10px", fontSize: "10.5px", fontWeight: 700 }}>
+                {openTicketsCount}
+              </span>
+            )}
+          </button>
+          <button
             className={tab === "tracking" ? "active" : ""}
             onClick={() => {
               setTab("tracking");
@@ -3271,6 +3604,13 @@ function App() {
             >
               <UserCheck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
               Customer Control ({customers.length})
+            </button>
+            <button
+              className={tab === "support" ? "selected" : ""}
+              onClick={() => setTab("support")}
+            >
+              <Headphones size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Customer Support ({openTicketsCount})
             </button>
             <button
               className={tab === "tracking" ? "selected" : ""}
@@ -4367,6 +4707,901 @@ function App() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            TAB: CUSTOMER SUPPORT & HELPDESK HUB
+        ========================================================= */}
+        {tab === "support" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            {/* Header & Quick Actions */}
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "14px" }}>
+              <div>
+                <span className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <Headphones size={13} /> LIVE HELPDESK & CUSTOMER RELATIONS
+                </span>
+                <h3 style={{ margin: "4px 0 0" }}>Customer Support & Inquiries Hub</h3>
+                <p style={{ margin: "4px 0 0", color: "#62755c", fontSize: "13px" }}>
+                  কাস্টমারদের সাপোর্ট টিকিট, সরাসরি হোয়াটসঅ্যাপ ও ফোন সমাধান, এবং রিয়েল-টাইম চ্যাট রিপ্লাই সিস্টেম।
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setNewTicketModalOpen(true)}
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Plus size={14} /> New Support Ticket
+                </button>
+                <a
+                  href="https://wa.me/8801714703406?text=Hello%20GreenBasket%20Support%20Desk"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary"
+                  style={{ textDecoration: "none", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px", background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}
+                >
+                  <Send size={13} /> WhatsApp Desk
+                </a>
+              </div>
+            </div>
+
+            {/* Support Hotlines & Channels Banner */}
+            <div
+              style={{
+                background: "linear-gradient(135deg, #1b3d12, #2d6318)",
+                borderRadius: "14px",
+                padding: "16px 20px",
+                color: "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "14px",
+                marginTop: "16px",
+                marginBottom: "20px",
+                boxShadow: "0 4px 14px rgba(43,97,24,0.2)"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "grid", placeItems: "center" }}>
+                  <Headphones size={22} color="#86efac" />
+                </div>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <b style={{ fontSize: "14.5px" }}>GreenBasket Official Customer Care Desk</b>
+                    <span style={{ fontSize: "10.5px", background: "#22c55e", color: "#ffffff", padding: "1px 7px", borderRadius: "10px", fontWeight: 700 }}>
+                      ● LIVE ONLINE
+                    </span>
+                  </div>
+                  <span style={{ fontSize: "12px", color: "#bbf7d0" }}>
+                    Helpline: <b>+880 1714-703406</b> • WhatsApp: <b>+880 1714-703406</b> • Email: <b>support@greenbasket.com</b>
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <a
+                  href="tel:+8801714703406"
+                  style={{
+                    background: "#ffffff",
+                    color: "#1e3b14",
+                    padding: "6px 14px",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <Phone size={13} color="#16a34a" /> Call Helpline
+                </a>
+                <span style={{ fontSize: "11px", color: "#dcfce7" }}>
+                  ⏰ 8:00 AM - 11:00 PM Daily
+                </span>
+              </div>
+            </div>
+
+            {/* Support KPI Metrics Cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                gap: "14px",
+                marginBottom: "20px"
+              }}
+            >
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Total Inquiries</span>
+                  <MessageSquare size={18} color="#2563eb" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#1e293b", fontWeight: 800 }}>
+                  {supportTickets.length} <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>tickets</span>
+                </h3>
+                <small style={{ fontSize: "11px", color: "#64748b" }}>All time customer requests</small>
+              </div>
+
+              <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#1d4ed8", fontWeight: 600 }}>Awaiting Response (Open)</span>
+                  <Clock size={18} color="#2563eb" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#1d4ed8", fontWeight: 800 }}>
+                  {supportTickets.filter(t => t.status === "Open").length} <span style={{ fontSize: "12px", fontWeight: 600, color: "#1d4ed8" }}>pending</span>
+                </h3>
+                <small style={{ fontSize: "11px", color: "#1e40af" }}>Needs immediate support reply</small>
+              </div>
+
+              <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#854d0e", fontWeight: 600 }}>Under Investigation</span>
+                  <LifeBuoy size={18} color="#ca8a04" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#854d0e", fontWeight: 800 }}>
+                  {supportTickets.filter(t => t.status === "In Progress").length} <span style={{ fontSize: "12px", fontWeight: 600, color: "#854d0e" }}>in progress</span>
+                </h3>
+                <small style={{ fontSize: "11px", color: "#854d0e" }}>Agent currently working</small>
+              </div>
+
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>Resolved & Closed</span>
+                  <CheckCircle2 size={18} color="#16a34a" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#15803d", fontWeight: 800 }}>
+                  {supportTickets.filter(t => t.status === "Resolved" || t.status === "Closed").length} <span style={{ fontSize: "12px", fontWeight: 600, color: "#166534" }}>solved</span>
+                </h3>
+                <small style={{ fontSize: "11px", color: "#166534" }}>Customer issue resolved</small>
+              </div>
+            </div>
+
+            {/* Filter & Search Toolbar */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "14px",
+                padding: "14px 16px",
+                marginBottom: "18px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+              }}
+            >
+              {/* Status Filter Chips */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }}>Status:</span>
+                {["All", "Open", "In Progress", "Resolved", "Closed"].map((st) => {
+                  const count = st === "All" ? supportTickets.length : supportTickets.filter(t => t.status === st).length;
+                  const isSelected = supportStatusFilter === st;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() => setSupportStatusFilter(st)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        border: isSelected ? "1px solid #2b6118" : "1px solid #cbd5e1",
+                        background: isSelected ? "#2b6118" : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#475569",
+                        cursor: "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "5px",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      <span>{st}</span>
+                      <span style={{ fontSize: "10.5px", background: isSelected ? "rgba(255,255,255,0.25)" : "#f1f5f9", color: isSelected ? "#fff" : "#475569", padding: "1px 6px", borderRadius: "10px" }}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Priority & Category Dropdowns + Search */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                {/* Priority */}
+                <select
+                  value={supportPriorityFilter}
+                  onChange={(e) => setSupportPriorityFilter(e.target.value)}
+                  style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", fontWeight: 600, background: "#ffffff", color: "#334155", outline: "none" }}
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Urgent">🔴 Urgent</option>
+                  <option value="High">🟠 High</option>
+                  <option value="Medium">🟡 Medium</option>
+                  <option value="Low">🟢 Low</option>
+                </select>
+
+                {/* Category */}
+                <select
+                  value={supportCategoryFilter}
+                  onChange={(e) => setSupportCategoryFilter(e.target.value)}
+                  style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", fontWeight: 600, background: "#ffffff", color: "#334155", outline: "none" }}
+                >
+                  <option value="All">All Categories</option>
+                  <option value="Order & Delivery">📦 Order & Delivery</option>
+                  <option value="Payment & Refund">💳 Payment & Refund</option>
+                  <option value="Product Quality">🥦 Product Quality</option>
+                  <option value="General Inquiry">💬 General Inquiry</option>
+                </select>
+
+                {/* Search Box */}
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 10px" }}>
+                  <Search size={13} style={{ color: "#64748b" }} />
+                  <input
+                    type="text"
+                    placeholder="Search tickets..."
+                    value={supportSearch}
+                    onChange={(e) => setSupportSearch(e.target.value)}
+                    style={{ border: "none", outline: "none", background: "transparent", fontSize: "12px", width: "135px", color: "#1e293b" }}
+                  />
+                  {supportSearch && (
+                    <button type="button" onClick={() => setSupportSearch("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}>
+                      <X size={11} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Support Tickets Table */}
+            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "14px", overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "900px", fontSize: "12.5px" }}>
+                  <thead>
+                    <tr style={{ background: "#f8fafc", borderBottom: "1px solid #e2e8f0", textAlign: "left" }}>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>TICKET & CHANNEL</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>CUSTOMER & CONTACT</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>SUBJECT & RELATED ORDER</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>CATEGORY</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>PRIORITY</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>STATUS</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569" }}>ASSIGNED AGENT</th>
+                      <th style={{ padding: "12px 14px", fontWeight: 700, color: "#475569", textAlign: "center" }}>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredSupportTickets.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding: "36px", textAlign: "center", color: "#64748b" }}>
+                          <Headphones size={32} style={{ display: "block", margin: "0 auto 8px", opacity: 0.4 }} />
+                          No support tickets found matching your search and filter criteria.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSupportTickets.map((t, idx) => {
+                        const priorityColor =
+                          t.priority === "Urgent"
+                            ? { bg: "#fef2f2", text: "#b91c1c", border: "#fecaca" }
+                            : t.priority === "High"
+                            ? { bg: "#fff7ed", text: "#c2410c", border: "#fed7aa" }
+                            : t.priority === "Medium"
+                            ? { bg: "#fefce8", text: "#854d0e", border: "#fef08a" }
+                            : { bg: "#f0fdf4", text: "#15803d", border: "#bbf7d0" };
+
+                        const statusColor =
+                          t.status === "Open"
+                            ? { bg: "#eff6ff", text: "#1d4ed8", border: "#bfdbfe" }
+                            : t.status === "In Progress"
+                            ? { bg: "#fefce8", text: "#854d0e", border: "#fde047" }
+                            : t.status === "Resolved"
+                            ? { bg: "#dcfce7", text: "#15803d", border: "#86efac" }
+                            : { bg: "#f1f5f9", text: "#475569", border: "#cbd5e1" };
+
+                        return (
+                          <tr key={t.id} style={{ borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "#ffffff" : "#fbfcfe" }}>
+                            {/* Ticket & Channel */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <b style={{ color: "#1e293b", fontSize: "13px", display: "block" }}>{t.id}</b>
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "3px",
+                                  fontSize: "10.5px",
+                                  fontWeight: 600,
+                                  color: "#475569",
+                                  background: "#f1f5f9",
+                                  padding: "2px 6px",
+                                  borderRadius: "6px",
+                                  marginTop: "3px"
+                                }}
+                              >
+                                {t.channel === "WhatsApp" ? "💬 WhatsApp" : t.channel === "Phone Call" ? "📞 Phone" : t.channel === "Website" ? "🌐 Website" : "✉️ Email"}
+                              </span>
+                            </td>
+
+                            {/* Customer & Contact */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <b style={{ color: "#0f172a", fontSize: "13px" }}>{t.customer}</b>
+                              {t.phone && (
+                                <div style={{ fontSize: "11px", color: "#2b6118", marginTop: "2px" }}>
+                                  <a href={`tel:${t.phone}`} style={{ color: "#2b6118", textDecoration: "none", fontWeight: 600 }}>
+                                    <Phone size={10} style={{ verticalAlign: "middle", marginRight: "3px" }} />
+                                    {t.phone}
+                                  </a>
+                                </div>
+                              )}
+                            </td>
+
+                            {/* Subject & Related Order */}
+                            <td style={{ padding: "12px 14px", maxWidth: "260px" }}>
+                              <div style={{ fontWeight: 600, color: "#1e293b", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                {t.subject}
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "3px" }}>
+                                {t.orderId ? (
+                                  <span style={{ fontSize: "10.5px", background: "#eff6ff", color: "#1d4ed8", padding: "1px 6px", borderRadius: "6px", fontWeight: 700 }}>
+                                    Order #{t.orderId}
+                                  </span>
+                                ) : (
+                                  <span style={{ fontSize: "10px", color: "#94a3b8" }}>General Query</span>
+                                )}
+                                <span style={{ fontSize: "10.5px", color: "#64748b" }}>• {t.createdAt}</span>
+                              </div>
+                            </td>
+
+                            {/* Category */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <span style={{ fontSize: "11.5px", color: "#475569" }}>
+                                {t.category}
+                              </span>
+                            </td>
+
+                            {/* Priority */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  padding: "3px 8px",
+                                  borderRadius: "10px",
+                                  background: priorityColor.bg,
+                                  color: priorityColor.text,
+                                  border: `1px solid ${priorityColor.border}`
+                                }}
+                              >
+                                {t.priority}
+                              </span>
+                            </td>
+
+                            {/* Status */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  padding: "3px 8px",
+                                  borderRadius: "10px",
+                                  background: statusColor.bg,
+                                  color: statusColor.text,
+                                  border: `1px solid ${statusColor.border}`
+                                }}
+                              >
+                                {t.status}
+                              </span>
+                            </td>
+
+                            {/* Assigned Agent */}
+                            <td style={{ padding: "12px 14px" }}>
+                              <div style={{ fontSize: "12px", color: "#1e293b", fontWeight: 600 }}>
+                                {t.assignedAgent || "Unassigned"}
+                              </div>
+                            </td>
+
+                            {/* Actions */}
+                            <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveTicketForModal(t);
+                                    setTicketReplyText("");
+                                  }}
+                                  style={{
+                                    background: "#f0fdf4",
+                                    border: "1px solid #bbf7d0",
+                                    color: "#15803d",
+                                    padding: "4px 8px",
+                                    borderRadius: "6px",
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  }}
+                                  title="Open conversation and reply"
+                                >
+                                  <MessageSquare size={11} /> Reply
+                                </button>
+                                {t.phone && (
+                                  <a
+                                    href={`https://wa.me/${t.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hello ${t.customer}, regarding your GreenBasket inquiry ${t.id}: `)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      background: "#25d366",
+                                      color: "#ffffff",
+                                      padding: "4px 7px",
+                                      borderRadius: "6px",
+                                      fontSize: "11px",
+                                      textDecoration: "none",
+                                      display: "inline-flex",
+                                      alignItems: "center"
+                                    }}
+                                    title="Open WhatsApp chat with customer"
+                                  >
+                                    <Send size={11} />
+                                  </a>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTicket(t.id)}
+                                  style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#ef4444",
+                                    cursor: "pointer",
+                                    padding: "4px"
+                                  }}
+                                  title="Delete ticket"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* =========================================================
+                TICKET CONVERSATION & REPLY MODAL
+            ========================================================= */}
+            {activeTicketForModal && (
+              <div className="order-modal-backdrop" onClick={() => setActiveTicketForModal(null)}>
+                <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "680px" }}>
+                  <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1b3d12, #2d6318)" }}>
+                    <div className="order-modal-title">
+                      <span className="modal-eyebrow" style={{ color: "#86efac" }}>TICKET WORKSPACE • {activeTicketForModal.id}</span>
+                      <h3 style={{ color: "#fff", margin: "2px 0 0" }}>{activeTicketForModal.subject}</h3>
+                      <small style={{ color: "#dcfce7" }}>
+                        Customer: <b>{activeTicketForModal.customer}</b> ({activeTicketForModal.phone})
+                        {activeTicketForModal.orderId && ` • Related Order: #${activeTicketForModal.orderId}`}
+                      </small>
+                    </div>
+                    <button
+                      type="button"
+                      className="modal-close-btn"
+                      onClick={() => setActiveTicketForModal(null)}
+                      style={{ color: "#fff" }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="order-modal-body" style={{ maxHeight: "72vh", overflowY: "auto", padding: "18px" }}>
+                    {/* Status & Priority Controls Strip */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        borderRadius: "10px",
+                        padding: "10px 14px",
+                        marginBottom: "16px"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b" }}>Status:</span>
+                        <select
+                          value={activeTicketForModal.status}
+                          onChange={(e) => handleUpdateTicketStatus(activeTicketForModal.id, e.target.value)}
+                          style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "11.5px", fontWeight: 700, background: "#ffffff", color: "#1e293b", outline: "none" }}
+                        >
+                          <option value="Open">🔵 Open</option>
+                          <option value="In Progress">🟡 In Progress</option>
+                          <option value="Resolved">🟢 Resolved</option>
+                          <option value="Closed">⚪ Closed</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b" }}>Priority:</span>
+                        <select
+                          value={activeTicketForModal.priority}
+                          onChange={(e) => {
+                            const newP = e.target.value;
+                            setSupportTickets(prev => prev.map(t => t.id === activeTicketForModal.id ? { ...t, priority: newP } : t));
+                            setActiveTicketForModal(prev => ({ ...prev, priority: newP }));
+                          }}
+                          style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "11.5px", fontWeight: 700, background: "#ffffff", color: "#1e293b", outline: "none" }}
+                        >
+                          <option value="Urgent">🔴 Urgent</option>
+                          <option value="High">🟠 High</option>
+                          <option value="Medium">🟡 Medium</option>
+                          <option value="Low">🟢 Low</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b" }}>Agent:</span>
+                        <select
+                          value={activeTicketForModal.assignedAgent}
+                          onChange={(e) => {
+                            const newA = e.target.value;
+                            setSupportTickets(prev => prev.map(t => t.id === activeTicketForModal.id ? { ...t, assignedAgent: newA } : t));
+                            setActiveTicketForModal(prev => ({ ...prev, assignedAgent: newA }));
+                          }}
+                          style={{ padding: "4px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "11.5px", fontWeight: 600, background: "#ffffff", color: "#1e293b", outline: "none" }}
+                        >
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Conversation History Thread */}
+                    <div style={{ marginBottom: "16px" }}>
+                      <span style={{ fontSize: "12px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "8px" }}>
+                        Conversation Thread:
+                      </span>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "10px",
+                          background: "#f1f5f9",
+                          borderRadius: "12px",
+                          padding: "14px",
+                          maxHeight: "260px",
+                          overflowY: "auto"
+                        }}
+                      >
+                        {(activeTicketForModal.messages || []).map((msg) => {
+                          const isAgent = msg.sender === "agent";
+                          return (
+                            <div
+                              key={msg.id}
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: isAgent ? "flex-end" : "flex-start"
+                              }}
+                            >
+                              <span style={{ fontSize: "10px", color: "#64748b", marginBottom: "2px" }}>
+                                {msg.senderName} • {msg.time}
+                              </span>
+                              <div
+                                style={{
+                                  background: isAgent ? "#2b6118" : "#ffffff",
+                                  color: isAgent ? "#ffffff" : "#1e293b",
+                                  border: isAgent ? "none" : "1px solid #cbd5e1",
+                                  padding: "8px 12px",
+                                  borderRadius: isAgent ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                                  maxWidth: "80%",
+                                  fontSize: "12.5px",
+                                  lineHeight: "1.4",
+                                  boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                                }}
+                              >
+                                {msg.text}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Quick Canned Reply Presets */}
+                    <div style={{ marginBottom: "14px" }}>
+                      <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#64748b", display: "block", marginBottom: "6px" }}>
+                        Quick Response Templates (ক্লিক করে সরাসরি বসান):
+                      </span>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {QUICK_REPLY_TEMPLATES.map((tmpl, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setTicketReplyText(tmpl)}
+                            style={{
+                              background: "#ffffff",
+                              border: "1px solid #cbd5e1",
+                              color: "#334155",
+                              padding: "4px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              cursor: "pointer",
+                              textAlign: "left"
+                            }}
+                          >
+                            + {tmpl.slice(0, 38)}...
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Reply Textarea & Actions */}
+                    <div>
+                      <textarea
+                        rows={3}
+                        placeholder="Type customer support reply here..."
+                        value={ticketReplyText}
+                        onChange={(e) => setTicketReplyText(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "10px",
+                          borderRadius: "8px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "12.5px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                          resize: "vertical"
+                        }}
+                      />
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "8px", flexWrap: "wrap", gap: "8px" }}>
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          {activeTicketForModal.phone && (
+                            <a
+                              href={`https://wa.me/${activeTicketForModal.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hello ${activeTicketForModal.customer}, regarding ${activeTicketForModal.id}: `)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: "#25d366",
+                                color: "#ffffff",
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                textDecoration: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              <Send size={12} /> WhatsApp Customer
+                            </a>
+                          )}
+                          {activeTicketForModal.phone && (
+                            <a
+                              href={`tel:${activeTicketForModal.phone}`}
+                              style={{
+                                background: "#ffffff",
+                                border: "1px solid #cbd5e1",
+                                color: "#334155",
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                textDecoration: "none",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px"
+                              }}
+                            >
+                              <Phone size={12} color="#16a34a" /> Call
+                            </a>
+                          )}
+                        </div>
+
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => handleSendTicketReply(activeTicketForModal.id, true)}
+                            style={{
+                              background: "#f0fdf4",
+                              border: "1px solid #bbf7d0",
+                              color: "#15803d",
+                              padding: "6px 12px",
+                              borderRadius: "8px",
+                              fontSize: "11.5px",
+                              fontWeight: 700,
+                              cursor: "pointer"
+                            }}
+                          >
+                            Send & Resolve ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSendTicketReply(activeTicketForModal.id, false)}
+                            className="btn btn-primary"
+                            style={{ padding: "6px 14px", fontSize: "11.5px" }}
+                          >
+                            Send Reply
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* =========================================================
+                ADD NEW SUPPORT TICKET MODAL
+            ========================================================= */}
+            {newTicketModalOpen && (
+              <div className="order-modal-backdrop" onClick={() => setNewTicketModalOpen(false)}>
+                <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "560px" }}>
+                  <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1b3d12, #2d6318)" }}>
+                    <div className="order-modal-title">
+                      <span className="modal-eyebrow" style={{ color: "#86efac" }}>CUSTOMER SUPPORT HELPDESK</span>
+                      <h3 style={{ color: "#fff", margin: "2px 0 0" }}>Create New Support Ticket</h3>
+                      <small style={{ color: "#dcfce7" }}>Log incoming customer query or complaint</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="modal-close-btn"
+                      onClick={() => setNewTicketModalOpen(false)}
+                      style={{ color: "#fff" }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleCreateTicket} style={{ padding: "18px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Customer Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Sazib Ahmed"
+                          value={newTicketForm.customer}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, customer: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Customer Phone *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="+880 1712-345678"
+                          value={newTicketForm.phone}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, phone: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Related Order ID (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. GB-1930"
+                          value={newTicketForm.orderId}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, orderId: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Contact Channel
+                        </label>
+                        <select
+                          value={newTicketForm.channel}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, channel: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", background: "#fff", boxSizing: "border-box" }}
+                        >
+                          <option value="WhatsApp">💬 WhatsApp</option>
+                          <option value="Phone Call">📞 Phone Call</option>
+                          <option value="Website">🌐 Storefront Website</option>
+                          <option value="Email">✉️ Email</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Issue Category
+                        </label>
+                        <select
+                          value={newTicketForm.category}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, category: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", background: "#fff", boxSizing: "border-box" }}
+                        >
+                          <option value="Order & Delivery">📦 Order & Delivery</option>
+                          <option value="Payment & Refund">💳 Payment & Refund</option>
+                          <option value="Product Quality">🥦 Product Quality & Freshness</option>
+                          <option value="General Inquiry">💬 General Inquiry</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Priority Level
+                        </label>
+                        <select
+                          value={newTicketForm.priority}
+                          onChange={(e) => setNewTicketForm({ ...newTicketForm, priority: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", background: "#fff", boxSizing: "border-box" }}
+                        >
+                          <option value="Urgent">🔴 Urgent</option>
+                          <option value="High">🟠 High</option>
+                          <option value="Medium">🟡 Medium</option>
+                          <option value="Low">🟢 Low</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: "12px" }}>
+                      <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                        Subject / Problem Summary *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Brief summary of customer issue..."
+                        value={newTicketForm.subject}
+                        onChange={(e) => setNewTicketForm({ ...newTicketForm, subject: e.target.value })}
+                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                      />
+                    </div>
+
+                    <div style={{ marginBottom: "16px" }}>
+                      <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                        Customer Message / Details
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Enter details of customer conversation..."
+                        value={newTicketForm.initialMessage}
+                        onChange={(e) => setNewTicketForm({ ...newTicketForm, initialMessage: e.target.value })}
+                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box", resize: "vertical" }}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setNewTicketModalOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                      >
+                        Create Support Ticket
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
