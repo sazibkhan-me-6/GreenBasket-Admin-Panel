@@ -47,6 +47,8 @@ import {
   Navigation,
   Send,
   ArrowRight,
+  ArrowUp,
+  ArrowDown,
   ChevronRight,
   ChevronDown,
   ChevronUp,
@@ -829,6 +831,62 @@ export const getCustomerCoordinates = (cust) => {
     lng: Number((90.3912 + ((hash % 7) - 3) * 0.010).toFixed(6)),
     area: cust.address || "Greater Dhaka Metropolitan"
   };
+};
+
+export const getCustomerTimestamp = (cust) => {
+  if (!cust) return 0;
+  const parse = (d) => {
+    if (!d || d === "N/A" || d === "Recently") return 0;
+    if (d === "Today") return Date.now();
+    const t = Date.parse(d);
+    return isNaN(t) ? 0 : t;
+  };
+  const joinedTime = parse(cust.joinedDate);
+  const createdTime = cust.createdAt ? parse(cust.createdAt) : 0;
+  const lastOrderTime = parse(cust.lastOrderDate);
+  return joinedTime || createdTime || lastOrderTime || 0;
+};
+
+export const isCustomerRecent = (cust) => {
+  if (!cust) return false;
+  const ts = getCustomerTimestamp(cust);
+  if (ts) {
+    const diffDays = Math.abs(Date.now() - ts) / (1000 * 60 * 60 * 24);
+    if (diffDays <= 25) return true;
+    const str = String(cust.joinedDate || "");
+    if (str.includes("Nov") || str.includes("Dec")) return true;
+  }
+  const numId = parseInt(String(cust.id || "").replace(/\D/g, ""), 10);
+  if (!isNaN(numId) && numId >= 1003) return true;
+  return false;
+};
+
+export const sortCustomersRecentFirst = (a, b) => {
+  const timeA = getCustomerTimestamp(a);
+  const timeB = getCustomerTimestamp(b);
+  if (timeA && timeB && timeA !== timeB) {
+    return timeB - timeA; // Most recent customer first (UP)
+  }
+  const numA = parseInt(String(a.id || "").replace(/\D/g, ""), 10);
+  const numB = parseInt(String(b.id || "").replace(/\D/g, ""), 10);
+  if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+    return numB - numA; // Newer registered ID first (UP)
+  }
+  return 0;
+};
+
+export const sortCustomersPreviousFirst = (a, b) => {
+  const timeA = getCustomerTimestamp(a);
+  const timeB = getCustomerTimestamp(b);
+  if (timeA && timeB && timeA !== timeB) {
+    return timeA - timeB; // Older/previous customer first (UP)
+  }
+  const numA = parseInt(String(a.id || "").replace(/\D/g, ""), 10);
+  const numB = parseInt(String(b.id || "").replace(/\D/g, ""), 10);
+  if (!isNaN(numA) && !isNaN(numB) && numA !== numB) {
+    return numA - numB;
+  }
+  return 0;
 };
 
 export const initialCustomers = [
@@ -1790,6 +1848,7 @@ function App() {
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerStatusFilter, setCustomerStatusFilter] = useState("All");
+  const [customerSortOrder, setCustomerSortOrder] = useState("recent_first");
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [viewOrdersCustomer, setViewOrdersCustomer] = useState(null);
@@ -3564,18 +3623,36 @@ function App() {
     return matchSearch && matchRole;
   });
 
-  const filteredCustomers = customers.filter((c) => {
-    const q = customerSearch.toLowerCase().trim();
-    const matchSearch =
-      !q ||
-      (c.name && c.name.toLowerCase().includes(q)) ||
-      (c.phone && c.phone.toLowerCase().includes(q)) ||
-      (c.email && c.email.toLowerCase().includes(q)) ||
-      (c.address && c.address.toLowerCase().includes(q)) ||
-      (c.id && c.id.toLowerCase().includes(q));
-    const matchStatus = customerStatusFilter === "All" || c.status === customerStatusFilter;
-    return matchSearch && matchStatus;
-  });
+  const filteredCustomers = customers
+    .filter((c) => {
+      const q = customerSearch.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        (c.name && c.name.toLowerCase().includes(q)) ||
+        (c.phone && c.phone.toLowerCase().includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q)) ||
+        (c.address && c.address.toLowerCase().includes(q)) ||
+        (c.id && c.id.toLowerCase().includes(q));
+      const matchStatus = customerStatusFilter === "All" || c.status === customerStatusFilter;
+      return matchSearch && matchStatus;
+    })
+    .sort((a, b) => {
+      if (customerSortOrder === "previous_first") {
+        return sortCustomersPreviousFirst(a, b);
+      }
+      if (customerSortOrder === "recent_order") {
+        const parse = (d) => (!d || d === "N/A" || d === "Recently" ? 0 : Date.parse(d) || 0);
+        const orderTimeA = parse(a.lastOrderDate);
+        const orderTimeB = parse(b.lastOrderDate);
+        if (orderTimeA !== orderTimeB) return orderTimeB - orderTimeA;
+        return (b.totalOrders || 0) - (a.totalOrders || 0);
+      }
+      if (customerSortOrder === "highest_spend") {
+        return (Number(b.totalSpent) || 0) - (Number(a.totalSpent) || 0);
+      }
+      // Default: "recent_first" (Recent Customer Up, Previous Customer Down)
+      return sortCustomersRecentFirst(a, b);
+    });
 
   const lowStock = products.filter((p) => Number(p.stock || 0) < 20);
 
@@ -5583,7 +5660,7 @@ function App() {
                         <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", whiteSpace: "nowrap" }}>
                           Select Customer:
                         </span>
-                        {customers.map((c) => {
+                        {[...customers].sort(sortCustomersRecentFirst).map((c) => {
                           const isSelected = (targetCust && targetCust.id === c.id);
                           const loc = getCustomerCoordinates(c);
                           return (
@@ -5814,6 +5891,29 @@ function App() {
                 />
               </div>
 
+              {/* SORT CONTROLS: RECENT CUSTOMER UP vs PREVIOUS CUSTOMER DOWN */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Order:</span>
+                <button
+                  type="button"
+                  className={`emp-filter-chip ${customerSortOrder === "recent_first" ? "active" : ""}`}
+                  onClick={() => setCustomerSortOrder("recent_first")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: customerSortOrder === "recent_first" ? 700 : 500 }}
+                  title="Recent Customer Up (Newest First) and Previous Customer Down"
+                >
+                  <ArrowUp size={12} /> Recent Customer Up
+                </button>
+                <button
+                  type="button"
+                  className={`emp-filter-chip ${customerSortOrder === "previous_first" ? "active" : ""}`}
+                  onClick={() => setCustomerSortOrder("previous_first")}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontWeight: customerSortOrder === "previous_first" ? 700 : 500 }}
+                  title="Previous Customer Up (Oldest First) and Recent Customer Down"
+                >
+                  <ArrowDown size={12} /> Previous Customer Down
+                </button>
+              </div>
+
               {/* STATUS FILTER CHIPS */}
               <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b", marginRight: "4px" }}>Filter:</span>
@@ -5835,7 +5935,18 @@ function App() {
               <table className="orders-table" style={{ width: "100%", borderCollapse: "collapse", minWidth: "960px" }}>
                 <thead>
                   <tr style={{ background: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                    <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CUSTOMER</th>
+                    <th
+                      style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569", cursor: "pointer", userSelect: "none" }}
+                      onClick={() => setCustomerSortOrder(customerSortOrder === "recent_first" ? "previous_first" : "recent_first")}
+                      title="Click to toggle: Recent Customer Up / Previous Customer Down"
+                    >
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                        <span>CUSTOMER</span>
+                        <span style={{ fontSize: "10.5px", padding: "1px 6px", borderRadius: "8px", background: customerSortOrder === "recent_first" ? "#dcfce7" : "#f1f5f9", color: customerSortOrder === "recent_first" ? "#15803d" : "#475569", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "2px" }}>
+                          {customerSortOrder === "recent_first" ? <><ArrowUp size={10} /> Recent Up</> : customerSortOrder === "previous_first" ? <><ArrowDown size={10} /> Previous Down</> : "Sorted"}
+                        </span>
+                      </div>
+                    </th>
                     <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>CONTACT INFO</th>
                     <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>DELIVERY ADDRESS</th>
                     <th style={{ padding: "14px 16px", textAlign: "left", fontSize: "12px", fontWeight: 700, color: "#475569" }}>ORDERS & SPEND</th>
@@ -5857,6 +5968,7 @@ function App() {
                       const initials = getInitials(cust.name);
                       const isVip = cust.status === "VIP";
                       const isBlocked = cust.status === "Blocked";
+                      const isRecent = isCustomerRecent(cust);
                       const avatarClass = isVip ? "cust-avatar vip" : isBlocked ? "cust-avatar blocked" : "cust-avatar";
                       const customerOrdersList = orders.filter(o => 
                         (o.customer && o.customer.toLowerCase() === cust.name.toLowerCase()) || 
@@ -5873,8 +5985,17 @@ function App() {
                                 {initials}
                               </div>
                               <div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
                                   <span style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>{cust.name}</span>
+                                  {isRecent ? (
+                                    <span className="cust-badge-recent">
+                                      🆕 Recent
+                                    </span>
+                                  ) : (
+                                    <span className="cust-badge-previous">
+                                      🗓️ Previous
+                                    </span>
+                                  )}
                                   {isVip && (
                                     <span className="cust-badge-vip">
                                       ⭐ VIP
@@ -5888,7 +6009,7 @@ function App() {
                                 </div>
                                 <div style={{ display: "flex", gap: "6px", alignItems: "center", marginTop: "2px" }}>
                                   <span style={{ fontSize: "11px", color: "#64748b", fontFamily: "monospace", fontWeight: 600 }}>{cust.id}</span>
-                                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>· Joined {cust.joinedDate || "2026"}</span>
+                                  <span style={{ fontSize: "11px", color: isRecent ? "#15803d" : "#94a3b8", fontWeight: isRecent ? 700 : 400 }}>· Joined {cust.joinedDate || "2026"}</span>
                                 </div>
                               </div>
                             </div>
