@@ -2826,6 +2826,15 @@ function App() {
             <Users /> Employee Control
           </button>
           <button
+            className={tab === "admin_control" ? "active" : ""}
+            onClick={() => {
+              setTab("admin_control");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <ShieldCheck /> Admin Control
+          </button>
+          <button
             className={tab === "analytics" ? "active" : ""}
             onClick={() => {
               setTab("analytics");
@@ -3004,6 +3013,13 @@ function App() {
               Employee Control ({employees.length})
             </button>
             <button
+              className={tab === "admin_control" ? "selected" : ""}
+              onClick={() => setTab("admin_control")}
+            >
+              <ShieldCheck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Admin Control ({registeredUsers.length})
+            </button>
+            <button
               className={tab === "analytics" ? "selected" : ""}
               onClick={() => setTab("analytics")}
             >
@@ -3014,13 +3030,6 @@ function App() {
               onClick={() => setTab("settings")}
             >
               Store Controls & Settings
-            </button>
-            <button
-              className={tab === "admin_control" ? "selected" : ""}
-              onClick={() => setTab("admin_control")}
-            >
-              <ShieldCheck size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
-              Admin Control ({registeredUsers.length})
             </button>
           </div>
 
