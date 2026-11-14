@@ -3025,37 +3025,6 @@ function App() {
           </div>
 
           <div className="actions">
-            {tab === "products" && (
-              <>
-                <div className="search">
-                  <Search size={16} />
-                  <input
-                    placeholder="Search products by name or tag..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                  {search && (
-                    <button
-                      type="button"
-                      onClick={() => setSearch("")}
-                      style={{ background: "none", border: "none", cursor: "pointer", color: "#888" }}
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  className="primary"
-                  onClick={() => {
-                    reset();
-                    setShowForm(!showForm);
-                  }}
-                >
-                  <Plus size={17} /> Add Product
-                </button>
-              </>
-            )}
           </div>
         </div>
 
@@ -3067,21 +3036,27 @@ function App() {
                 <h2>Manage store items, photos and live pricing</h2>
                 <p>Upload product photos, update regular & discount prices, and manage stock</p>
               </div>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button
-                  className="soft"
-                  onClick={exportCatalogJSON}
-                  title="Download JSON backup"
-                >
-                  <Download size={15} /> Backup Catalog
-                </button>
-                <button
-                  className="soft"
-                  onClick={resetToDefaultCatalog}
-                  title="Reset to 12 default items"
-                >
-                  <RotateCcw size={15} /> Reset Default
-                </button>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                {/* Search Box */}
+                <div className="search" style={{ margin: 0 }}>
+                  <Search size={15} />
+                  <input
+                    placeholder="Search products by name or tag..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                  {search && (
+                    <button
+                      type="button"
+                      onClick={() => setSearch("")}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#888", display: "grid", placeItems: "center" }}
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* + New Category Button */}
                 <button
                   type="button"
                   className="soft"
@@ -3091,9 +3066,20 @@ function App() {
                 >
                   <FolderPlus size={15} /> + New Category
                 </button>
-                <button className="soft" onClick={() => setShowForm(!showForm)}>
-                  {showForm ? <X size={16} /> : <Plus size={16} />}
-                  {showForm ? "Close Form" : "Open Form"}
+
+                {/* Add Product Button */}
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    reset();
+                    setShowForm(!showForm);
+                  }}
+                  title="Add a new product to catalog"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  {showForm && !editing ? <X size={16} /> : <Plus size={16} />}
+                  {showForm && !editing ? "Close Form" : "Add Product"}
                 </button>
               </div>
             </div>
