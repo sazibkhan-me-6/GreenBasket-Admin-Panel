@@ -67,7 +67,10 @@ import {
   MessageSquare,
   LifeBuoy,
   PhoneCall,
-  MessageCircle
+  MessageCircle,
+  Banknote,
+  QrCode,
+  Landmark
 } from "lucide-react";
 
 const initialProducts = [
@@ -670,6 +673,135 @@ export const initialSupportTickets = [
   }
 ];
 
+export const initialPaymentMethods = [
+  {
+    id: "pm_cod",
+    name: "Cash on Delivery (COD)",
+    nameBn: "ক্যাশ অন ডেলিভারি",
+    type: "cash",
+    category: "Manual / Cash",
+    enabled: true,
+    badgeColor: "#15803d",
+    badgeBg: "#dcfce7",
+    icon: "Banknote",
+    accountNumber: "N/A (Cash to Delivery Rider)",
+    accountType: "Cash on Receipt",
+    processingFee: 0,
+    minOrderAmount: 0,
+    maxOrderAmount: 500,
+    instructions: "Pay with exact cash directly to the GreenBasket rider upon package delivery.",
+    instructionsBn: "পণ্য হাতে পেয়ে ডেলিভারি রাইডারের নিকট ক্যাশ টাকা পরিশোধ করুন।",
+    totalOrders: 11,
+    totalVolume: 142.80,
+    mode: "Live"
+  },
+  {
+    id: "pm_bkash",
+    name: "bKash Mobile Banking",
+    nameBn: "বিকাশ পেমেন্ট",
+    type: "mfs",
+    category: "Mobile Financial Services (MFS)",
+    enabled: true,
+    badgeColor: "#db2777",
+    badgeBg: "#fce7f3",
+    icon: "Smartphone",
+    accountNumber: "+880 1714-703406",
+    accountType: "Merchant / Send Money",
+    processingFee: 0,
+    minOrderAmount: 0,
+    maxOrderAmount: 2500,
+    instructions: "Make Payment or Send Money to 01714-703406 and enter your Transaction ID (TrxID) in checkout.",
+    instructionsBn: "বিকাশ মার্চেন্ট অথবা সেন্ড মানি করুন ০১৭১৪-৭০৩৪০৬ নম্বরে এবং TrxID প্রদান করুন।",
+    totalOrders: 4,
+    totalVolume: 84.50,
+    mode: "Live"
+  },
+  {
+    id: "pm_nagad",
+    name: "Nagad Islamic & Regular",
+    nameBn: "নগদ মোবাইল ব্যাংকিং",
+    type: "mfs",
+    category: "Mobile Financial Services (MFS)",
+    enabled: true,
+    badgeColor: "#ea580c",
+    badgeBg: "#ffedd5",
+    icon: "Smartphone",
+    accountNumber: "+880 1812-987654",
+    accountType: "Merchant / Personal",
+    processingFee: 0,
+    minOrderAmount: 0,
+    maxOrderAmount: 2500,
+    instructions: "Send payment to Nagad wallet number 01812-987654 and submit your 8-digit TrxID.",
+    instructionsBn: "নগদ নম্বরে ০১৮১২-৯৮৭৬৫৪ পেমেন্ট করে TrxID সাবমিট করুন।",
+    totalOrders: 2,
+    totalVolume: 38.20,
+    mode: "Live"
+  },
+  {
+    id: "pm_cards",
+    name: "Credit / Debit Cards (Visa & MasterCard)",
+    nameBn: "ভিসা / মাস্টারকার্ড / এমেক্স",
+    type: "card",
+    category: "Online Gateway (SSLCommerz / Stripe)",
+    enabled: true,
+    badgeColor: "#2563eb",
+    badgeBg: "#eff6ff",
+    icon: "CreditCard",
+    accountNumber: "Gateway MID: GB-MCH-98214",
+    accountType: "SSLCommerz / Stripe Automated Gateway",
+    processingFee: 0,
+    minOrderAmount: 5,
+    maxOrderAmount: 5000,
+    instructions: "Instant 3D-secure card payment with OTP verification. Supports Visa, Mastercard & Amex.",
+    instructionsBn: "ভিসা ও মাস্টারকার্ড দিয়ে তাৎক্ষণিক নিরাপদ অনলাইন পেমেন্ট।",
+    totalOrders: 3,
+    totalVolume: 62.40,
+    mode: "Live"
+  },
+  {
+    id: "pm_rocket",
+    name: "Rocket DBBL Mobile Banking",
+    nameBn: "ডাচ-বাংলা রকেট",
+    type: "mfs",
+    category: "Mobile Financial Services (MFS)",
+    enabled: false,
+    badgeColor: "#7c3aed",
+    badgeBg: "#f5f3ff",
+    icon: "Smartphone",
+    accountNumber: "+880 1714-703406-8",
+    accountType: "Rocket Bill Pay / Personal",
+    processingFee: 0,
+    minOrderAmount: 0,
+    maxOrderAmount: 1500,
+    instructions: "Rocket bill payment to DBBL mobile account 01714-703406-8.",
+    instructionsBn: "ডাচ-বাংলা রকেট অ্যাকাউন্টে পেমেন্ট করুন।",
+    totalOrders: 0,
+    totalVolume: 0,
+    mode: "Sandbox"
+  },
+  {
+    id: "pm_bank",
+    name: "Direct Corporate Bank Transfer",
+    nameBn: "ব্যাংক ডিপোজিট / ট্রান্সফার",
+    type: "bank",
+    category: "Commercial Banking",
+    enabled: true,
+    badgeColor: "#0f766e",
+    badgeBg: "#ccfbf1",
+    icon: "Landmark",
+    accountNumber: "DBBL A/C: 1502-345678901",
+    accountType: "GreenBasket Agro Ventures Ltd. (Dhanmondi Branch)",
+    processingFee: 0,
+    minOrderAmount: 50,
+    maxOrderAmount: 20000,
+    instructions: "Account Name: GreenBasket Agro Ltd. | A/C: 1502-345678901 | Routing: 085273145 | DBBL Dhanmondi.",
+    instructionsBn: "ডাচ-বাংলা ব্যাংক অ্যাকাউন্ট অথবা এনপিএসবি ট্রান্সফার করুন।",
+    totalOrders: 1,
+    totalVolume: 45.00,
+    mode: "Live"
+  }
+];
+
 export const initialCustomers = [
   {
     id: "CUST-1001",
@@ -1254,7 +1386,153 @@ function App() {
   const [lastGpsPingTime, setLastGpsPingTime] = useState("Just now");
   const trackingMapRef = useRef(null);
 
-  // Customer Support System States
+  // Payment Method Control States
+  const [paymentMethods, setPaymentMethods] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_payment_methods");
+      return saved ? JSON.parse(saved) : initialPaymentMethods;
+    } catch {
+      return initialPaymentMethods;
+    }
+  });
+  const [paymentMethodSearch, setPaymentMethodSearch] = useState("");
+  const [paymentCategoryFilter, setPaymentCategoryFilter] = useState("All");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("All");
+  const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
+  const [isNewPaymentModalOpen, setIsNewPaymentModalOpen] = useState(false);
+  const [paymentMethodForm, setPaymentMethodForm] = useState({
+    id: "",
+    name: "",
+    nameBn: "",
+    type: "mfs",
+    category: "Mobile Financial Services (MFS)",
+    enabled: true,
+    accountNumber: "",
+    accountType: "Merchant / Personal",
+    processingFee: 0,
+    minOrderAmount: 0,
+    maxOrderAmount: 2000,
+    instructions: "",
+    instructionsBn: "",
+    mode: "Live"
+  });
+
+  const [trxVerifyQuery, setTrxVerifyQuery] = useState("");
+  const [trxVerifyResult, setTrxVerifyResult] = useState(null);
+
+  const togglePaymentMethod = (id) => {
+    setPaymentMethods((prev) => {
+      const next = prev.map((pm) => (pm.id === id ? { ...pm, enabled: !pm.enabled } : pm));
+      try {
+        localStorage.setItem("greenbasket_payment_methods", JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    const found = paymentMethods.find((p) => p.id === id);
+    triggerToast(`${found?.name || "Payment Method"} is now ${found?.enabled ? "Disabled" : "Enabled"}!`);
+  };
+
+  const handleSavePaymentMethod = (e) => {
+    if (e) e.preventDefault();
+    if (!paymentMethodForm.name.trim()) {
+      alert("Please enter a payment method name.");
+      return;
+    }
+
+    if (editingPaymentMethod) {
+      setPaymentMethods((prev) => {
+        const next = prev.map((pm) =>
+          pm.id === editingPaymentMethod.id ? { ...pm, ...paymentMethodForm } : pm
+        );
+        try {
+          localStorage.setItem("greenbasket_payment_methods", JSON.stringify(next));
+        } catch (e) {
+          console.error(e);
+        }
+        return next;
+      });
+      triggerToast(`${paymentMethodForm.name} updated successfully!`);
+    } else {
+      const newMethod = {
+        ...paymentMethodForm,
+        id: "pm_" + Date.now(),
+        totalOrders: 0,
+        totalVolume: 0
+      };
+      setPaymentMethods((prev) => {
+        const next = [...prev, newMethod];
+        try {
+          localStorage.setItem("greenbasket_payment_methods", JSON.stringify(next));
+        } catch (e) {
+          console.error(e);
+        }
+        return next;
+      });
+      triggerToast(`New Payment Method ${paymentMethodForm.name} added!`);
+    }
+    setEditingPaymentMethod(null);
+    setIsNewPaymentModalOpen(false);
+  };
+
+  const handleDeletePaymentMethod = (id) => {
+    if (!window.confirm("Are you sure you want to remove this payment method?")) return;
+    setPaymentMethods((prev) => {
+      const next = prev.filter((p) => p.id !== id);
+      try {
+        localStorage.setItem("greenbasket_payment_methods", JSON.stringify(next));
+      } catch (e) {
+        console.error(e);
+      }
+      return next;
+    });
+    triggerToast("Payment method deleted.");
+  };
+
+  const handleVerifyTrx = (e) => {
+    if (e) e.preventDefault();
+    const q = trxVerifyQuery.trim().toLowerCase();
+    if (!q) return;
+
+    const matchedOrder = orders.find(
+      (o) =>
+        (o.id && o.id.toLowerCase() === q) ||
+        (o.customerPhone && o.customerPhone.includes(q)) ||
+        (o.customer && o.customer.toLowerCase().includes(q)) ||
+        (o.trackingId && o.trackingId.toLowerCase() === q)
+    );
+
+    const matchedTicket = supportTickets.find(
+      (t) =>
+        (t.id && t.id.toLowerCase() === q) ||
+        (t.orderId && t.orderId.toLowerCase() === q) ||
+        (t.messages && t.messages.some((m) => m.text && m.text.toLowerCase().includes(q)))
+    );
+
+    if (matchedOrder) {
+      setTrxVerifyResult({
+        found: true,
+        type: "order",
+        data: matchedOrder,
+        message: `Order #${matchedOrder.id} found: ${matchedOrder.customer} - ${Number(matchedOrder.total || 0).toFixed(2)} (${matchedOrder.paymentMethod || "COD"} - ${matchedOrder.paymentStatus || "Pending"})`
+      });
+    } else if (matchedTicket) {
+      setTrxVerifyResult({
+        found: true,
+        type: "ticket",
+        data: matchedTicket,
+        message: `Ticket #${matchedTicket.id} (${matchedTicket.customer}): ${matchedTicket.subject}`
+      });
+    } else {
+      setTrxVerifyResult({
+        found: false,
+        message: `No payment transaction or order found matching "${trxVerifyQuery}". Please verify with customer.`
+      });
+    }
+  };
+
+    // Customer Support System States
   const [supportTickets, setSupportTickets] = useState(() => {
     try {
       const saved = localStorage.getItem("greenbasket_support_tickets");
@@ -3066,7 +3344,27 @@ function App() {
     })
     .sort(sortOrdersRecentFirst);
 
-  const filteredSupportTickets = supportTickets.filter((t) => {
+  const filteredPaymentMethods = paymentMethods.filter((pm) => {
+    const q = paymentMethodSearch.toLowerCase().trim();
+    const matchSearch =
+      !q ||
+      pm.name.toLowerCase().includes(q) ||
+      (pm.nameBn && pm.nameBn.includes(q)) ||
+      (pm.accountNumber && pm.accountNumber.toLowerCase().includes(q)) ||
+      (pm.category && pm.category.toLowerCase().includes(q));
+
+    const matchCat = paymentCategoryFilter === "All" || pm.category.includes(paymentCategoryFilter) || pm.type === paymentCategoryFilter;
+    const matchStatus =
+      paymentStatusFilter === "All" ||
+      (paymentStatusFilter === "Active" && pm.enabled) ||
+      (paymentStatusFilter === "Disabled" && !pm.enabled);
+
+    return matchSearch && matchCat && matchStatus;
+  });
+
+  const activeGatewaysCount = paymentMethods.filter((p) => p.enabled).length;
+
+    const filteredSupportTickets = supportTickets.filter((t) => {
     const q = supportSearch.toLowerCase().trim();
     const matchSearch =
       !q ||
@@ -3418,6 +3716,18 @@ function App() {
             <ShoppingBag /> Customer Orders
           </button>
           <button
+            className={tab === "payment_methods" ? "active" : ""}
+            onClick={() => {
+              setTab("payment_methods");
+              setMobileMenuOpen(false);
+            }}
+          >
+            <CreditCard /> Payment Methods
+            <span style={{ marginLeft: "auto", background: activeGatewaysCount === paymentMethods.length ? "#16a34a" : "#2563eb", color: "#ffffff", padding: "1px 6px", borderRadius: "10px", fontSize: "10.5px", fontWeight: 700 }}>
+              {activeGatewaysCount}/{paymentMethods.length}
+            </span>
+          </button>
+          <button
             className={tab === "customers" ? "active" : ""}
             onClick={() => {
               setTab("customers");
@@ -3597,6 +3907,13 @@ function App() {
               onClick={() => setTab("orders")}
             >
               Customer Orders ({orders.length})
+            </button>
+            <button
+              className={tab === "payment_methods" ? "selected" : ""}
+              onClick={() => setTab("payment_methods")}
+            >
+              <CreditCard size={14} style={{ verticalAlign: "middle", marginRight: "4px" }} />
+              Payment Methods ({activeGatewaysCount}/{paymentMethods.length})
             </button>
             <button
               className={tab === "customers" ? "selected" : ""}
@@ -4422,6 +4739,667 @@ function App() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* =========================================================
+            TAB: PAYMENT METHOD & GATEWAY CONTROL CENTER
+        ========================================================= */}
+        {tab === "payment_methods" && (
+          <div className="orders" style={{ padding: "24px" }}>
+            {/* Header */}
+            <div className="catalog-head" style={{ marginTop: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "14px" }}>
+              <div>
+                <span className="eyebrow" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <CreditCard size={13} /> LIVE CHECKOUT & GATEWAY CONTROLS
+                </span>
+                <h3 style={{ margin: "4px 0 0" }}>Payment Method & Gateway Control Center</h3>
+                <p style={{ margin: "4px 0 0", color: "#62755c", fontSize: "13px" }}>
+                  ক্যাশ অন ডেলিভারি, বিকাশ, নগদ, রকেট, কার্ড এবং ব্যাংক ট্রান্সফার গেটওয়ে নিয়ন্ত্রণ ও কনফিগারেশন।
+                </p>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setEditingPaymentMethod(null);
+                    setPaymentMethodForm({
+                      id: "",
+                      name: "",
+                      nameBn: "",
+                      type: "mfs",
+                      category: "Mobile Financial Services (MFS)",
+                      enabled: true,
+                      accountNumber: "",
+                      accountType: "Merchant / Personal",
+                      processingFee: 0,
+                      minOrderAmount: 0,
+                      maxOrderAmount: 2000,
+                      instructions: "",
+                      instructionsBn: "",
+                      mode: "Live"
+                    });
+                    setIsNewPaymentModalOpen(true);
+                  }}
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Plus size={14} /> Add Payment Method
+                </button>
+              </div>
+            </div>
+
+            {/* Payment Gateways KPI Metric Cards */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+                gap: "14px",
+                marginTop: "16px",
+                marginBottom: "20px"
+              }}
+            >
+              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#64748b", fontWeight: 600 }}>Active Gateways</span>
+                  <CreditCard size={18} color="#2563eb" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#1e293b", fontWeight: 800 }}>
+                  {activeGatewaysCount} <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>of {paymentMethods.length} Online</span>
+                </h3>
+                <small style={{ fontSize: "11px", color: "#16a34a", fontWeight: 600 }}>● Ready at customer checkout</small>
+              </div>
+
+              <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>Total Volume Processed</span>
+                  <DollarSign size={18} color="#16a34a" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#15803d", fontWeight: 800 }}>
+                  ${paymentMethods.reduce((s, p) => s + (p.totalVolume || 0), 0).toFixed(2)}
+                </h3>
+                <small style={{ fontSize: "11px", color: "#166534" }}>Across all payment methods</small>
+              </div>
+
+              <div style={{ background: "#fdf2f8", border: "1px solid #fbcfe8", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#be185d", fontWeight: 600 }}>Mobile Banking (MFS)</span>
+                  <Smartphone size={18} color="#db2777" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#be185d", fontWeight: 800 }}>
+                  ${((paymentMethods.find(p => p.id === 'pm_bkash')?.totalVolume || 0) + (paymentMethods.find(p => p.id === 'pm_nagad')?.totalVolume || 0)).toFixed(2)}
+                </h3>
+                <small style={{ fontSize: "11px", color: "#9d174d" }}>bKash & Nagad transactions</small>
+              </div>
+
+              <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "12px", padding: "14px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: "12px", color: "#854d0e", fontWeight: 600 }}>Cash on Delivery (COD)</span>
+                  <Banknote size={18} color="#ca8a04" />
+                </div>
+                <h3 style={{ margin: "6px 0 2px", fontSize: "22px", color: "#854d0e", fontWeight: 800 }}>
+                  ${(paymentMethods.find(p => p.id === 'pm_cod')?.totalVolume || 0).toFixed(2)}
+                </h3>
+                <small style={{ fontSize: "11px", color: "#854d0e" }}>Cash collected by riders</small>
+              </div>
+            </div>
+
+            {/* INSTANT TrxID / ORDER PAYMENT VERIFICATION TOOL */}
+            <div
+              style={{
+                background: "#f8fafc",
+                border: "1px solid #e2e8f0",
+                borderRadius: "14px",
+                padding: "16px 20px",
+                marginBottom: "20px"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", marginBottom: "12px" }}>
+                <div>
+                  <b style={{ fontSize: "13.5px", color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <ShieldCheck size={16} color="#2b6118" /> Instant Transaction ID (TrxID) & Payment Verifier
+                  </b>
+                  <small style={{ fontSize: "11.5px", color: "#64748b" }}>
+                    বিকাশ, নগদ বা ব্যাংক TrxID অথবা অর্ডার আইডি লিখে তাৎক্ষণিক পেমেন্ট ভেরিফাই করুন
+                  </small>
+                </div>
+              </div>
+
+              <form onSubmit={handleVerifyTrx} style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <input
+                  type="text"
+                  placeholder="Enter TrxID, Order ID (e.g. GB-1930), or Customer Phone..."
+                  value={trxVerifyQuery}
+                  onChange={(e) => setTrxVerifyQuery(e.target.value)}
+                  style={{
+                    flex: 1,
+                    minWidth: "260px",
+                    padding: "9px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #cbd5e1",
+                    fontSize: "12.5px",
+                    outline: "none",
+                    background: "#ffffff"
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ padding: "9px 16px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <Search size={13} /> Verify Payment
+                </button>
+                {trxVerifyResult && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTrxVerifyQuery("");
+                      setTrxVerifyResult(null);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ fontSize: "12px" }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </form>
+
+              {trxVerifyResult && (
+                <div
+                  style={{
+                    marginTop: "12px",
+                    padding: "12px 14px",
+                    borderRadius: "8px",
+                    background: trxVerifyResult.found ? "#f0fdf4" : "#fef2f2",
+                    border: trxVerifyResult.found ? "1px solid #bbf7d0" : "1px solid #fecaca",
+                    color: trxVerifyResult.found ? "#15803d" : "#b91c1c",
+                    fontSize: "12.5px",
+                    fontWeight: 600
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    {trxVerifyResult.found ? <CheckCircle2 size={16} color="#16a34a" /> : <AlertTriangle size={16} color="#dc2626" />}
+                    <span>{trxVerifyResult.message}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Filter & Search Toolbar */}
+            <div
+              style={{
+                background: "#ffffff",
+                border: "1px solid #e2e8f0",
+                borderRadius: "14px",
+                padding: "14px 16px",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.03)"
+              }}
+            >
+              {/* Category Filter Chips */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748b" }}>Category:</span>
+                {[
+                  { key: "All", label: "All Gateways" },
+                  { key: "mfs", label: "Mobile Banking (bKash/Nagad)" },
+                  { key: "cash", label: "Cash on Delivery" },
+                  { key: "card", label: "Cards & SSLCommerz" },
+                  { key: "bank", label: "Bank Transfer" }
+                ].map((cat) => {
+                  const isSelected = paymentCategoryFilter === cat.key;
+                  return (
+                    <button
+                      key={cat.key}
+                      type="button"
+                      onClick={() => setPaymentCategoryFilter(cat.key)}
+                      style={{
+                        padding: "5px 12px",
+                        borderRadius: "20px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        border: isSelected ? "1px solid #2b6118" : "1px solid #cbd5e1",
+                        background: isSelected ? "#2b6118" : "#ffffff",
+                        color: isSelected ? "#ffffff" : "#475569",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease"
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Status Filter & Search */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <select
+                  value={paymentStatusFilter}
+                  onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                  style={{ padding: "6px 10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", fontWeight: 600, background: "#ffffff", color: "#334155", outline: "none" }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Active">● Active Only</option>
+                  <option value="Disabled">○ Disabled Only</option>
+                </select>
+
+                <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: "8px", padding: "5px 10px" }}>
+                  <Search size={13} style={{ color: "#64748b" }} />
+                  <input
+                    type="text"
+                    placeholder="Search gateways..."
+                    value={paymentMethodSearch}
+                    onChange={(e) => setPaymentMethodSearch(e.target.value)}
+                    style={{ border: "none", outline: "none", background: "transparent", fontSize: "12px", width: "135px", color: "#1e293b" }}
+                  />
+                  {paymentMethodSearch && (
+                    <button type="button" onClick={() => setPaymentMethodSearch("")} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0 }}>
+                      <X size={11} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* PAYMENT METHODS CARDS GRID */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+                gap: "18px"
+              }}
+            >
+              {filteredPaymentMethods.map((pm) => {
+                return (
+                  <div
+                    key={pm.id}
+                    style={{
+                      background: "#ffffff",
+                      border: pm.enabled ? "1px solid #cbd5e1" : "1px solid #e2e8f0",
+                      borderRadius: "14px",
+                      padding: "18px",
+                      boxShadow: pm.enabled ? "0 2px 8px rgba(0,0,0,0.04)" : "none",
+                      opacity: pm.enabled ? 1 : 0.75,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      transition: "all 0.2s ease"
+                    }}
+                  >
+                    <div>
+                      {/* Card Top: Icon, Titles & Toggle Switch */}
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "10px", marginBottom: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div
+                            style={{
+                              width: "44px",
+                              height: "44px",
+                              borderRadius: "12px",
+                              background: pm.badgeBg || "#f1f5f9",
+                              color: pm.badgeColor || "#334155",
+                              display: "grid",
+                              placeItems: "center"
+                            }}
+                          >
+                            {pm.type === "cash" ? (
+                              <Banknote size={24} />
+                            ) : pm.type === "card" ? (
+                              <CreditCard size={24} />
+                            ) : pm.type === "bank" ? (
+                              <Landmark size={24} />
+                            ) : (
+                              <Smartphone size={24} />
+                            )}
+                          </div>
+                          <div>
+                            <h4 style={{ margin: 0, fontSize: "14.5px", fontWeight: 700, color: "#1e293b" }}>
+                              {pm.name}
+                            </h4>
+                            <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                              {pm.nameBn || pm.category}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status Toggle Switch */}
+                        <div style={{ textAlign: "right" }}>
+                          <button
+                            type="button"
+                            onClick={() => togglePaymentMethod(pm.id)}
+                            style={{
+                              border: "none",
+                              background: pm.enabled ? "#22c55e" : "#cbd5e1",
+                              borderRadius: "20px",
+                              width: "44px",
+                              height: "24px",
+                              padding: "2px",
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              transition: "background 0.2s ease"
+                            }}
+                            title={pm.enabled ? "Click to disable payment method" : "Click to enable payment method"}
+                          >
+                            <span
+                              style={{
+                                width: "20px",
+                                height: "20px",
+                                borderRadius: "50%",
+                                background: "#ffffff",
+                                transform: pm.enabled ? "translateX(20px)" : "translateX(0)",
+                                transition: "transform 0.2s ease",
+                                display: "block",
+                                boxShadow: "0 1px 3px rgba(0,0,0,0.2)"
+                              }}
+                            />
+                          </button>
+                          <span style={{ display: "block", fontSize: "10px", fontWeight: 700, color: pm.enabled ? "#15803d" : "#94a3b8", marginTop: "2px" }}>
+                            {pm.enabled ? "ACTIVE" : "OFF"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Account & Details Box */}
+                      <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px", marginBottom: "12px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "3px" }}>
+                          <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#64748b" }}>WALLET / ACCOUNT:</span>
+                          {pm.accountNumber && pm.accountNumber !== "N/A" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(pm.accountNumber);
+                                triggerToast("Account number copied!");
+                              }}
+                              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#64748b", fontSize: "10px", display: "flex", alignItems: "center", gap: "2px" }}
+                              title="Copy account number"
+                            >
+                              <Copy size={10} /> Copy
+                            </button>
+                          )}
+                        </div>
+                        <code style={{ fontSize: "12px", fontWeight: 700, color: "#0f172a", display: "block" }}>
+                          {pm.accountNumber}
+                        </code>
+                        <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px" }}>
+                          Type: <b>{pm.accountType || "Standard Checkout"}</b>
+                        </span>
+                      </div>
+
+                      {/* Limits & Fees Grid */}
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+                        <div style={{ background: "#f8fafc", padding: "6px 8px", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
+                          <span style={{ fontSize: "10px", color: "#64748b" }}>Order Limits:</span>
+                          <b style={{ fontSize: "11px", color: "#334155", display: "block" }}>
+                            ${pm.minOrderAmount} - ${pm.maxOrderAmount}
+                          </b>
+                        </div>
+                        <div style={{ background: "#f8fafc", padding: "6px 8px", borderRadius: "6px", border: "1px solid #f1f5f9" }}>
+                          <span style={{ fontSize: "10px", color: "#64748b" }}>Surcharge / Fee:</span>
+                          <b style={{ fontSize: "11px", color: "#15803d", display: "block" }}>
+                            {pm.processingFee > 0 ? `+${pm.processingFee}%` : "Free (0%)"}
+                          </b>
+                        </div>
+                      </div>
+
+                      {/* Instructions preview */}
+                      <p style={{ margin: "0 0 12px", fontSize: "11.5px", color: "#475569", lineHeight: "1.4" }}>
+                        {pm.instructions}
+                      </p>
+                    </div>
+
+                    {/* Card Actions Footer */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "12px", borderTop: "1px solid #f1f5f9" }}>
+                      <span style={{ fontSize: "11px", color: "#64748b" }}>
+                        📦 <b>{pm.totalOrders || 0} Orders</b> (${Number(pm.totalVolume || 0).toFixed(2)})
+                      </span>
+
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingPaymentMethod(pm);
+                            setPaymentMethodForm({ ...pm });
+                            setIsNewPaymentModalOpen(true);
+                          }}
+                          style={{
+                            background: "#f0fdf4",
+                            border: "1px solid #bbf7d0",
+                            color: "#15803d",
+                            padding: "4px 10px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <Pencil size={11} /> Edit
+                        </button>
+                        {pm.id.startsWith("pm_") && !["pm_cod", "pm_bkash", "pm_nagad", "pm_cards"].includes(pm.id) && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePaymentMethod(pm.id)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: "#ef4444",
+                              cursor: "pointer",
+                              padding: "4px"
+                            }}
+                            title="Delete Payment Method"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* =========================================================
+                ADD / EDIT PAYMENT METHOD MODAL
+            ========================================================= */}
+            {isNewPaymentModalOpen && (
+              <div className="order-modal-backdrop" onClick={() => setIsNewPaymentModalOpen(false)}>
+                <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "560px" }}>
+                  <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1b3d12, #2d6318)" }}>
+                    <div className="order-modal-title">
+                      <span className="modal-eyebrow" style={{ color: "#86efac" }}>PAYMENT GATEWAY CONFIGURATION</span>
+                      <h3 style={{ color: "#fff", margin: "2px 0 0" }}>
+                        {editingPaymentMethod ? `Edit: ${editingPaymentMethod.name}` : "Add New Payment Method"}
+                      </h3>
+                      <small style={{ color: "#dcfce7" }}>Configure gateway details, phone numbers, limits and customer instructions</small>
+                    </div>
+                    <button
+                      type="button"
+                      className="modal-close-btn"
+                      onClick={() => setIsNewPaymentModalOpen(false)}
+                      style={{ color: "#fff" }}
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSavePaymentMethod} style={{ padding: "18px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Method Name (English) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. bKash Mobile Banking"
+                          value={paymentMethodForm.name}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, name: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Bengali Name
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. বিকাশ পেমেন্ট"
+                          value={paymentMethodForm.nameBn}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, nameBn: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Category
+                        </label>
+                        <select
+                          value={paymentMethodForm.type}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const catName =
+                              val === "mfs"
+                                ? "Mobile Financial Services (MFS)"
+                                : val === "cash"
+                                ? "Manual / Cash"
+                                : val === "card"
+                                ? "Online Gateway (SSLCommerz / Stripe)"
+                                : "Commercial Banking";
+                            setPaymentMethodForm({ ...paymentMethodForm, type: val, category: catName });
+                          }}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", background: "#fff", boxSizing: "border-box" }}
+                        >
+                          <option value="mfs">Mobile Financial Services (bKash/Nagad/Rocket)</option>
+                          <option value="cash">Cash on Delivery (COD)</option>
+                          <option value="card">Cards / Payment Gateway</option>
+                          <option value="bank">Bank Deposit & Transfer</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Wallet / Account Number *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. +880 1714-703406"
+                          value={paymentMethodForm.accountNumber}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, accountNumber: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Account Type / Details
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Merchant / Personal / Send Money"
+                          value={paymentMethodForm.accountType}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, accountType: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Gateway Environment Mode
+                        </label>
+                        <select
+                          value={paymentMethodForm.mode}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, mode: e.target.value })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", background: "#fff", boxSizing: "border-box" }}
+                        >
+                          <option value="Live">● Live Production</option>
+                          <option value="Sandbox">○ Sandbox / Testing</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Min Order ($)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={paymentMethodForm.minOrderAmount}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, minOrderAmount: Number(e.target.value) })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                          Max Order Limit ($)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={paymentMethodForm.maxOrderAmount}
+                          onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, maxOrderAmount: Number(e.target.value) })}
+                          style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box" }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: "12px" }}>
+                      <label style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "4px" }}>
+                        Customer Checkout Instructions
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Instructions displayed to customer on checkout page..."
+                        value={paymentMethodForm.instructions}
+                        onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, instructions: e.target.value })}
+                        style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "12px", outline: "none", boxSizing: "border-box", resize: "vertical" }}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
+                      <input
+                        type="checkbox"
+                        id="pm_enabled_check"
+                        checked={paymentMethodForm.enabled}
+                        onChange={(e) => setPaymentMethodForm({ ...paymentMethodForm, enabled: e.target.checked })}
+                        style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#2b6118" }}
+                      />
+                      <label htmlFor="pm_enabled_check" style={{ fontSize: "12.5px", fontWeight: 600, color: "#1e293b", cursor: "pointer" }}>
+                        Enable this payment method at customer checkout
+                      </label>
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #e2e8f0", paddingTop: "14px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setIsNewPaymentModalOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn btn-primary"
+                      >
+                        {editingPaymentMethod ? "Save Changes" : "Add Payment Method"}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
