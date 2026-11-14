@@ -332,6 +332,7 @@ export const initialEmployees = [
   {
     id: "EMP-101",
     name: "Karim Mia",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
     role: "Senior Delivery Rider",
     department: "Logistics & Delivery",
     phone: "+880 1798-765432",
@@ -1043,6 +1044,7 @@ function App() {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [employeeForm, setEmployeeForm] = useState({
     name: "",
+    image: "",
     role: "Delivery Rider",
     department: "Logistics & Delivery",
     phone: "",
@@ -1052,6 +1054,7 @@ function App() {
     vehicleType: "",
     nid: ""
   });
+  const employeeFileInputRef = useRef(null);
 
   // Admin Control Management States
   const [adminSearch, setAdminSearch] = useState("");
@@ -2150,12 +2153,28 @@ function App() {
   };
 
   // --- EMPLOYEE CONTROL SYSTEM HANDLERS ---
+  const handleEmployeePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      triggerToast("Please select a valid image file (PNG, JPG, WebP)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setEmployeeForm((prev) => ({ ...prev, image: event.target.result }));
+      triggerToast("Employee photo selected!");
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleOpenAddEmployee = () => {
     const nextId = "EMP-" + (100 + employees.length + 1);
     setEditingEmployee(null);
     setEmployeeForm({
       id: nextId,
       name: "",
+      image: "",
       role: "Delivery Rider",
       department: "Logistics & Delivery",
       phone: "",
@@ -2173,6 +2192,7 @@ function App() {
     setEmployeeForm({
       id: emp.id,
       name: emp.name || "",
+      image: emp.image || "",
       role: emp.role || "Delivery Rider",
       department: emp.department || "Logistics & Delivery",
       phone: emp.phone || "",
@@ -4510,8 +4530,16 @@ function App() {
                         <tr key={emp.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                           <td style={{ padding: "12px 16px" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                              <div className="employee-avatar">
-                                {initials}
+                              <div className="employee-avatar" style={{ overflow: "hidden", padding: 0 }}>
+                                {emp.image ? (
+                                  <img
+                                    src={emp.image}
+                                    alt={emp.name}
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                                  />
+                                ) : (
+                                  initials
+                                )}
                               </div>
                               <div>
                                 <div style={{ fontWeight: 700, color: "#0f172a", fontSize: "14px" }}>{emp.name}</div>
@@ -6182,6 +6210,122 @@ function App() {
               </div>
 
               <form onSubmit={handleSaveEmployee} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                {/* Employee Photo Upload Section at the TOP */}
+                <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px 16px" }}>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "8px" }}>
+                    Employee Profile Photo (কর্মচারীর ছবি)
+                  </label>
+
+                  <input
+                    type="file"
+                    ref={employeeFileInputRef}
+                    accept="image/*"
+                    onChange={handleEmployeePhotoChange}
+                    style={{ display: "none" }}
+                  />
+
+                  {employeeForm.image ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                      <div style={{ position: "relative" }}>
+                        <img
+                          src={employeeForm.image}
+                          alt="Employee preview"
+                          style={{ width: "60px", height: "60px", borderRadius: "50%", objectFit: "cover", border: "2px solid #22c55e", boxShadow: "0 2px 6px rgba(0,0,0,0.08)" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeForm({ ...employeeForm, image: "" })}
+                          title="Remove photo"
+                          style={{
+                            position: "absolute",
+                            top: "-4px",
+                            right: "-4px",
+                            background: "#ef4444",
+                            color: "#fff",
+                            border: "none",
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            display: "grid",
+                            placeItems: "center",
+                            cursor: "pointer"
+                          }}
+                        >
+                          <X size={11} />
+                        </button>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: "12px", fontWeight: 700, color: "#166534" }}>✓ Photo Attached</div>
+                        <div style={{ fontSize: "11px", color: "#64748b" }}>Photo will display in employee roster & tracking</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => employeeFileInputRef.current?.click()}
+                        style={{ background: "#ffffff", border: "1px solid #cbd5e1", borderRadius: "6px", padding: "6px 12px", fontSize: "12px", fontWeight: 600, color: "#334155", cursor: "pointer" }}
+                      >
+                        Change Photo
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "#e2e8f0", color: "#64748b", display: "grid", placeItems: "center" }}>
+                          <User size={22} />
+                        </div>
+                        <div style={{ flex: 1, display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            onClick={() => employeeFileInputRef.current?.click()}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              background: "#ffffff",
+                              border: "1.5px dashed #22c55e",
+                              borderRadius: "8px",
+                              padding: "8px 14px",
+                              fontSize: "12px",
+                              fontWeight: 700,
+                              color: "#166534",
+                              cursor: "pointer",
+                              whiteSpace: "nowrap"
+                            }}
+                          >
+                            <Upload size={14} /> Upload Photo (ছবি আপলোড)
+                          </button>
+                          <input
+                            type="url"
+                            placeholder="Or paste photo URL..."
+                            value={employeeForm.image}
+                            onChange={(e) => setEmployeeForm({ ...employeeForm, image: e.target.value })}
+                            style={{ flex: 1, padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "12px", background: "#fff", outline: "none", boxSizing: "border-box" }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Quick Sample Avatars */}
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                        <span style={{ fontSize: "11px", color: "#64748b" }}>Sample photos:</span>
+                        {[
+                          { label: "Male Rider 1", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80" },
+                          { label: "Male Staff 2", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80" },
+                          { label: "Female Staff 1", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80" },
+                          { label: "Rider 3", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80" }
+                        ].map((sample) => (
+                          <button
+                            key={sample.label}
+                            type="button"
+                            onClick={() => setEmployeeForm({ ...employeeForm, image: sample.img })}
+                            style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "2px 7px", fontSize: "11px", color: "#334155", cursor: "pointer" }}
+                          >
+                            + {sample.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div>
                   <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "5px" }}>
                     Full Name *
