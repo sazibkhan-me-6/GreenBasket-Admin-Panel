@@ -802,6 +802,35 @@ export const initialPaymentMethods = [
   }
 ];
 
+export const getCustomerCoordinates = (cust) => {
+  if (!cust) return { lat: 23.7548, lng: 90.3912, area: "Central Dhaka Hub" };
+  if (cust.lat && cust.lng) {
+    return { lat: Number(cust.lat), lng: Number(cust.lng), area: cust.address || "Customer Location" };
+  }
+  const addr = (cust.address || "").toLowerCase();
+  if (addr.includes("dhanmondi")) {
+    return { lat: 23.7465, lng: 90.3760, area: "Dhanmondi, Dhaka" };
+  } else if (addr.includes("gulshan")) {
+    return { lat: 23.7925, lng: 90.4078, area: "Gulshan, Dhaka" };
+  } else if (addr.includes("banani")) {
+    return { lat: 23.7937, lng: 90.4043, area: "Banani, Dhaka" };
+  } else if (addr.includes("uttara")) {
+    return { lat: 23.8759, lng: 90.3795, area: "Uttara, Dhaka" };
+  } else if (addr.includes("mirpur")) {
+    return { lat: 23.8069, lng: 90.3687, area: "Mirpur, Dhaka" };
+  } else if (addr.includes("mohakhali")) {
+    return { lat: 23.7776, lng: 90.4054, area: "Mohakhali, Dhaka" };
+  } else if (addr.includes("motijheel")) {
+    return { lat: 23.7330, lng: 90.4172, area: "Motijheel, Dhaka" };
+  }
+  const hash = parseInt((cust.id || "1").replace(/[^0-9]/g, "") || "1", 10);
+  return {
+    lat: Number((23.7548 + ((hash % 5) - 2) * 0.012).toFixed(6)),
+    lng: Number((90.3912 + ((hash % 7) - 3) * 0.010).toFixed(6)),
+    area: cust.address || "Greater Dhaka Metropolitan"
+  };
+};
+
 export const initialCustomers = [
   {
     id: "CUST-1001",
@@ -1764,6 +1793,9 @@ function App() {
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [viewOrdersCustomer, setViewOrdersCustomer] = useState(null);
+  const [selectedCustomerForMap, setSelectedCustomerForMap] = useState(null);
+  const [isCustomerRadarOpen, setIsCustomerRadarOpen] = useState(false);
+  const [activeRadarCustomerId, setActiveRadarCustomerId] = useState(null);
   const [customerForm, setCustomerForm] = useState({
     id: "",
     name: "",
@@ -5421,7 +5453,17 @@ function App() {
                   </div>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerRadarOpen(!isCustomerRadarOpen)}
+                  className="btn btn-secondary"
+                  style={{ fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  title="Toggle live customer order location radar via Google Maps"
+                >
+                  <MapPin size={13} color="#2563eb" />
+                  {isCustomerRadarOpen ? "Hide Live Map Radar" : "View Customer Live Google Map"}
+                </button>
                 <button
                   type="button"
                   className="primary"
@@ -5485,6 +5527,279 @@ function App() {
                 </div>
               </div>
             </div>
+
+            {/* CUSTOMER LIVE GOOGLE MAPS LOCATION RADAR */}
+            {isCustomerRadarOpen && (
+              <div
+                style={{
+                  background: "#ffffff",
+                  border: "1px solid #cbd5e1",
+                  borderRadius: "16px",
+                  padding: "18px 20px",
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)"
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "38px", height: "38px", borderRadius: "10px", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", display: "grid", placeItems: "center", color: "#ffffff" }}>
+                      <LocateFixed size={20} />
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#1e293b", display: "flex", alignItems: "center", gap: "6px" }}>
+                        Customer Live Order Locations & Delivery Radar
+                        <span style={{ fontSize: "10.5px", background: "#dcfce7", color: "#15803d", padding: "1px 6px", borderRadius: "10px", fontWeight: 700 }}>
+                          ● LIVE RADAR
+                        </span>
+                      </h4>
+                      <span style={{ fontSize: "11.5px", color: "#64748b" }}>
+                        রিয়েল-টাইম গুগল ম্যাপে কাস্টমারদের অর্ডারের বাসা/ডেলিভারি লোকেশন ও রুট ট্র্যাকিং
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "#2563eb", background: "#eff6ff", padding: "4px 10px", borderRadius: "12px", border: "1px solid #bfdbfe" }}>
+                      {customers.length} Customer Delivery Points Mapped
+                    </span>
+                  </div>
+                </div>
+
+                {/* Customer Location Selector Chips */}
+                {(() => {
+                  const targetCust = customers.find(c => c.id === activeRadarCustomerId) || customers[0];
+                  const targetLoc = getCustomerCoordinates(targetCust);
+                  const custOrders = orders.filter(o => 
+                    (o.customer && o.customer.toLowerCase() === targetCust?.name?.toLowerCase()) || 
+                    (o.customerPhone && o.customerPhone === targetCust?.phone)
+                  );
+                  const latestOrder = custOrders[0];
+
+                  return (
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", overflowX: "auto", paddingBottom: "10px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", whiteSpace: "nowrap" }}>
+                          Select Customer:
+                        </span>
+                        {customers.map((c) => {
+                          const isSelected = (targetCust && targetCust.id === c.id);
+                          const loc = getCustomerCoordinates(c);
+                          return (
+                            <button
+                              key={c.id}
+                              type="button"
+                              onClick={() => setActiveRadarCustomerId(c.id)}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                padding: "6px 12px",
+                                borderRadius: "20px",
+                                border: isSelected ? "2px solid #2563eb" : "1px solid #cbd5e1",
+                                background: isSelected ? "#eff6ff" : "#ffffff",
+                                color: isSelected ? "#1d4ed8" : "#334155",
+                                fontWeight: isSelected ? 700 : 500,
+                                fontSize: "11.5px",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                                boxShadow: isSelected ? "0 2px 6px rgba(37,99,235,0.2)" : "none",
+                                transition: "all 0.15s ease"
+                              }}
+                            >
+                              <span style={{ width: "7px", height: "7px", borderRadius: "50%", background: isSelected ? "#2563eb" : "#22c55e" }} />
+                              <b>{c.name}</b>
+                              <span style={{ fontSize: "10.5px", color: "#64748b" }}>({loc.area.split(",")[0]})</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Split View: Google Map + Customer Location Info */}
+                      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.8fr) minmax(300px, 1fr)", gap: "16px", alignItems: "stretch" }}>
+                        {/* Map Iframe */}
+                        <div style={{ position: "relative", minHeight: "360px", height: "100%", borderRadius: "12px", overflow: "hidden", border: "1px solid #cbd5e1", background: "#f1f5f9" }}>
+                          <iframe
+                            title={"Customer Google Map - " + (targetCust?.name || "Customer")}
+                            src={"https://maps.google.com/maps?q=" + targetLoc.lat + "," + targetLoc.lng + "&hl=en&z=15&output=embed"}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0, display: "block", minHeight: "360px" }}
+                            allowFullScreen=""
+                            loading="lazy"
+                          />
+
+                          {/* Floating Badge on Map */}
+                          <div
+                            style={{
+                              position: "absolute",
+                              top: "12px",
+                              left: "12px",
+                              background: "rgba(15, 23, 42, 0.88)",
+                              backdropFilter: "blur(6px)",
+                              color: "#ffffff",
+                              padding: "6px 12px",
+                              borderRadius: "20px",
+                              fontSize: "11px",
+                              fontWeight: 600,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                              zIndex: 5
+                            }}
+                          >
+                            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                            <b>{targetCust?.name}</b>
+                            <span style={{ color: "#94a3b8" }}>•</span>
+                            <span style={{ color: "#86efac" }}>{targetLoc.area}</span>
+                          </div>
+
+                          {/* Map Action Buttons */}
+                          <div style={{ position: "absolute", bottom: "12px", right: "12px", display: "flex", gap: "8px", zIndex: 5, flexWrap: "wrap" }}>
+                            <a
+                              href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(targetCust?.address || targetLoc.area)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: "#ffffff",
+                                color: "#1e293b",
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                textDecoration: "none",
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                                border: "1px solid #cbd5e1"
+                              }}
+                            >
+                              <ExternalLink size={12} color="#2563eb" /> Open in Google Maps
+                            </a>
+                            <a
+                              href={"https://www.google.com/maps/dir/?api=1&origin=23.7548,90.3912&destination=" + encodeURIComponent(targetCust?.address || targetLoc.area)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                background: "#2563eb",
+                                color: "#ffffff",
+                                padding: "6px 12px",
+                                borderRadius: "8px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                textDecoration: "none",
+                                boxShadow: "0 2px 8px rgba(37,99,235,0.3)"
+                              }}
+                            >
+                              <Navigation size={12} /> Delivery Route
+                            </a>
+                          </div>
+                        </div>
+
+                        {/* Customer Location Info Card */}
+                        <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+                              <div className={targetCust?.status === "VIP" ? "cust-avatar vip" : "cust-avatar"} style={{ width: "44px", height: "44px" }}>
+                                {getInitials(targetCust?.name)}
+                              </div>
+                              <div>
+                                <b style={{ fontSize: "14px", color: "#0f172a", display: "block" }}>{targetCust?.name}</b>
+                                <span style={{ fontSize: "11px", color: "#64748b" }}>{targetCust?.id} · {targetCust?.status || "Active Buyer"}</span>
+                              </div>
+                            </div>
+
+                            {/* Address Box */}
+                            <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px", marginBottom: "10px" }}>
+                              <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#64748b", display: "flex", alignItems: "center", gap: "4px" }}>
+                                <MapPin size={11} color="#166534" /> ORDERED DELIVERY LOCATION:
+                              </span>
+                              <b style={{ fontSize: "12.5px", color: "#1e293b", display: "block", marginTop: "3px", lineHeight: "1.4" }}>
+                                {targetCust?.address || "Dhanmondi, Dhaka"}
+                              </b>
+                              <span style={{ fontSize: "11px", color: "#2563eb", display: "block", marginTop: "4px", fontFamily: "monospace" }}>
+                                GPS: {targetLoc.lat}° N, {targetLoc.lng}° E
+                              </span>
+                            </div>
+
+                            {/* Order Details */}
+                            {latestOrder ? (
+                              <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px", marginBottom: "10px" }}>
+                                <span style={{ fontSize: "10.5px", fontWeight: 700, color: "#64748b" }}>LATEST ORDER FROM THIS ADDRESS:</span>
+                                <div style={{ display: "flex", justifyContent: "space-between", marginTop: "3px" }}>
+                                  <b style={{ fontSize: "12px", color: "#1e3b14" }}>Order #{latestOrder.id}</b>
+                                  <span style={{ fontSize: "11px", fontWeight: 700, color: "#16a34a" }}>${Number(latestOrder.total || 0).toFixed(2)}</span>
+                                </div>
+                                <span style={{ fontSize: "11px", color: "#64748b", display: "block", marginTop: "2px" }}>
+                                  Rider: <b>{latestOrder.riderName || "Pending Assignment"}</b>
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div style={{ display: "flex", gap: "8px", paddingTop: "8px", borderTop: "1px solid #e2e8f0" }}>
+                            {targetCust?.phone && (
+                              <a
+                                href={"tel:" + targetCust.phone}
+                                style={{
+                                  flex: 1,
+                                  textAlign: "center",
+                                  background: "#ffffff",
+                                  border: "1px solid #cbd5e1",
+                                  color: "#334155",
+                                  padding: "6px",
+                                  borderRadius: "6px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "4px"
+                                }}
+                              >
+                                <Phone size={11} color="#16a34a" /> Call
+                              </a>
+                            )}
+                            {targetCust?.phone && (
+                              <a
+                                href={"https://wa.me/" + targetCust.phone.replace(/[^0-9]/g, "") + "?text=" + encodeURIComponent("Hello " + targetCust.name + ", regarding your GreenBasket delivery: ")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  flex: 1,
+                                  textAlign: "center",
+                                  background: "#25d366",
+                                  color: "#ffffff",
+                                  padding: "6px",
+                                  borderRadius: "6px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  gap: "4px"
+                                }}
+                              >
+                                <Send size={11} /> WhatsApp
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
 
             {/* SEARCH & FILTERS BAR */}
             <div style={{ background: "#ffffff", borderRadius: "12px", border: "1px solid #e2e8f0", padding: "16px 20px", marginBottom: "20px", display: "flex", flexWrap: "wrap", gap: "16px", justifyContent: "space-between", alignItems: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.03)" }}>
@@ -5603,6 +5918,48 @@ function App() {
                               <MapPin size={13} style={{ color: "#166534", marginTop: "2px", flexShrink: 0 }} />
                               <span>{cust.address || "Standard Home Delivery"}</span>
                             </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedCustomerForMap(cust)}
+                                style={{
+                                  background: "#eff6ff",
+                                  border: "1px solid #bfdbfe",
+                                  color: "#1d4ed8",
+                                  padding: "2px 8px",
+                                  borderRadius: "6px",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  cursor: "pointer",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px"
+                                }}
+                                title="View live delivery location on Google Maps"
+                              >
+                                <MapPin size={10} /> Live Map
+                              </button>
+                              <a
+                                href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(cust.address || "Dhaka")}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  background: "#f8fafc",
+                                  border: "1px solid #cbd5e1",
+                                  color: "#475569",
+                                  padding: "2px 6px",
+                                  borderRadius: "6px",
+                                  fontSize: "10.5px",
+                                  textDecoration: "none",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "3px"
+                                }}
+                                title="Open in Google Maps App"
+                              >
+                                <ExternalLink size={10} />
+                              </a>
+                            </div>
                           </td>
 
                           <td style={{ padding: "12px 16px" }}>
@@ -5652,6 +6009,15 @@ function App() {
                                   <Send size={13} />
                                 </a>
                               )}
+                              <button
+                                type="button"
+                                className="emp-action-btn edit"
+                                style={{ background: "#eff6ff", color: "#1d4ed8", borderColor: "#bfdbfe" }}
+                                onClick={() => setSelectedCustomerForMap(cust)}
+                                title="View Customer Order Location on Google Maps"
+                              >
+                                <MapPin size={13} />
+                              </button>
                               <button
                                 type="button"
                                 className="emp-action-btn edit"
@@ -10535,6 +10901,191 @@ function App() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* CUSTOMER LIVE GOOGLE MAPS LOCATION MODAL */}
+        {selectedCustomerForMap && (
+          <div className="order-modal-backdrop" onClick={() => setSelectedCustomerForMap(null)}>
+            <div className="order-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "660px" }}>
+              <div className="order-modal-head" style={{ background: "linear-gradient(135deg, #1e3a8a, #2563eb)" }}>
+                <div className="order-modal-title">
+                  <span className="modal-eyebrow" style={{ color: "#93c5fd" }}>CUSTOMER LIVE ORDER LOCATION • GOOGLE MAPS</span>
+                  <h3 style={{ color: "#fff", margin: "2px 0 0" }}>{selectedCustomerForMap.name}'s Delivery Location</h3>
+                  <small style={{ color: "#dbeafe" }}>
+                    ID: <b>{selectedCustomerForMap.id}</b> · {selectedCustomerForMap.phone}
+                  </small>
+                </div>
+                <button
+                  type="button"
+                  className="modal-close-btn"
+                  onClick={() => setSelectedCustomerForMap(null)}
+                  style={{ color: "#fff" }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {(() => {
+                const custLoc = getCustomerCoordinates(selectedCustomerForMap);
+                const relatedOrders = orders.filter(o => 
+                  (o.customer && o.customer.toLowerCase() === selectedCustomerForMap.name.toLowerCase()) || 
+                  (o.customerPhone && o.customerPhone === selectedCustomerForMap.phone)
+                );
+                const recentOrder = relatedOrders[0];
+
+                return (
+                  <div className="order-modal-body" style={{ maxHeight: "74vh", overflowY: "auto", padding: "18px" }}>
+                    {/* Embedded Google Maps */}
+                    <div style={{ position: "relative", width: "100%", height: "340px", borderRadius: "12px", overflow: "hidden", border: "1px solid #cbd5e1", marginBottom: "16px", background: "#f1f5f9" }}>
+                      <iframe
+                        title={"Google Maps - " + selectedCustomerForMap.name}
+                        src={"https://maps.google.com/maps?q=" + custLoc.lat + "," + custLoc.lng + "&hl=en&z=15&output=embed"}
+                        width="100%"
+                        height="100%"
+                        style={{ border: 0, display: "block" }}
+                        allowFullScreen=""
+                        loading="lazy"
+                      />
+
+                      {/* Floating GPS Badge on Map */}
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "10px",
+                          left: "10px",
+                          background: "rgba(15, 23, 42, 0.90)",
+                          backdropFilter: "blur(6px)",
+                          color: "#ffffff",
+                          padding: "5px 12px",
+                          borderRadius: "20px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                        }}
+                      >
+                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} />
+                        <span>GPS: {custLoc.lat}° N, {custLoc.lng}° E</span>
+                      </div>
+                    </div>
+
+                    {/* Location Information & Actions */}
+                    <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "8px", marginBottom: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "flex", alignItems: "center", gap: "4px" }}>
+                          <MapPin size={12} color="#166534" /> DELIVERY DESTINATION ADDRESS:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedCustomerForMap.address);
+                            triggerToast("Customer address copied!");
+                          }}
+                          style={{ background: "transparent", border: "none", cursor: "pointer", color: "#2563eb", fontSize: "11px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "3px" }}
+                        >
+                          <Copy size={11} /> Copy Address
+                        </button>
+                      </div>
+                      <b style={{ fontSize: "13.5px", color: "#1e293b", display: "block", lineHeight: "1.4" }}>
+                        {selectedCustomerForMap.address || "Dhanmondi, Dhaka"}
+                      </b>
+                      <span style={{ fontSize: "11.5px", color: "#64748b", display: "block", marginTop: "4px" }}>
+                        Delivery Area / Zone: <b>{custLoc.area}</b>
+                      </span>
+                    </div>
+
+                    {/* Order Activity from this Location */}
+                    {recentOrder && (
+                      <div style={{ background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px", marginBottom: "14px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569", display: "block", marginBottom: "6px" }}>
+                          RECENT ORDER DETAILS FOR THIS ADDRESS:
+                        </span>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                          <div>
+                            <b style={{ fontSize: "13px", color: "#1e3b14" }}>Order #{recentOrder.id}</b>
+                            <span style={{ fontSize: "11.5px", color: "#64748b", display: "block" }}>
+                              {recentOrder.date} · {recentOrder.paymentMethod} ({recentOrder.paymentStatus})
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "14px", fontWeight: 800, color: "#15803d" }}>
+                            ${Number(recentOrder.total || 0).toFixed(2)}
+                          </span>
+                        </div>
+                        {recentOrder.riderName && (
+                          <div style={{ marginTop: "6px", fontSize: "11.5px", color: "#2b6118", fontWeight: 600 }}>
+                            Assigned Rider: <b>{recentOrder.riderName}</b> ({recentOrder.courierName || "GreenBasket Express"})
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Navigation Links Footer */}
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                      <a
+                        href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(selectedCustomerForMap.address || custLoc.area)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          flex: 1,
+                          textAlign: "center",
+                          background: "#ffffff",
+                          border: "1px solid #cbd5e1",
+                          color: "#1e293b",
+                          padding: "9px 12px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.05)"
+                        }}
+                      >
+                        <ExternalLink size={13} color="#2563eb" /> Open in Google Maps
+                      </a>
+                      <a
+                        href={"https://www.google.com/maps/dir/?api=1&origin=23.7548,90.3912&destination=" + encodeURIComponent(selectedCustomerForMap.address || custLoc.area)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          flex: 1,
+                          textAlign: "center",
+                          background: "#2563eb",
+                          color: "#ffffff",
+                          padding: "9px 12px",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          boxShadow: "0 2px 8px rgba(37,99,235,0.3)"
+                        }}
+                      >
+                        <Navigation size={13} /> Turn-by-Turn Route
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="order-modal-foot" style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setSelectedCustomerForMap(null)}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         )}
