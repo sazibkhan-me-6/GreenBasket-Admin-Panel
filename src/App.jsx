@@ -2848,7 +2848,7 @@ function App() {
         {/* SIDEBAR ADMIN ACCORDION MENU */}
         <div className="sidebar-admin-accordion">
           {/* Accordion Content (Expands upward) */}
-          <div className={`accordion-content ${adminAccordionOpen || tab === "settings" || tab === "admin_control" ? "expanded" : "collapsed"}`}>
+          <div className={`accordion-content ${adminAccordionOpen || tab === "settings" ? "expanded" : "collapsed"}`}>
             <button
               type="button"
               className={`accordion-menu-item ${tab === "settings" ? "active" : ""}`}
@@ -2860,32 +2860,6 @@ function App() {
             >
               <Settings size={15} />
               <span>Store Controls & Settings</span>
-            </button>
-
-            <button
-              type="button"
-              className={`accordion-menu-item ${tab === "admin_control" ? "active" : ""}`}
-              onClick={() => {
-                setTab("admin_control");
-                setMobileMenuOpen(false);
-              }}
-              title="Admin Roles & Access Management"
-            >
-              <ShieldCheck size={15} />
-              <span>Admin Control Hub</span>
-            </button>
-
-            <button
-              type="button"
-              className="accordion-menu-item"
-              onClick={() => {
-                handleOpenProfileModal();
-                setMobileMenuOpen(false);
-              }}
-              title="Update profile name & credentials"
-            >
-              <Lock size={15} />
-              <span>My Profile & Password</span>
             </button>
 
             <button
@@ -2907,7 +2881,7 @@ function App() {
             type="button"
             className="accordion-header-btn"
             onClick={() => setAdminAccordionOpen(!adminAccordionOpen)}
-            title="Click to toggle Admin Controls, Settings & Logout"
+            title="Click to toggle Store Settings & Logout"
           >
             <div className="avatar" title={currentUser.name}>
               {getInitials(currentUser.name)}
@@ -2916,7 +2890,7 @@ function App() {
               <b>{currentUser.name}</b>
               <small>{currentUser.role || currentUser.email}</small>
             </div>
-            <div className={`accordion-chevron ${adminAccordionOpen || tab === "settings" || tab === "admin_control" ? "open" : ""}`}>
+            <div className={`accordion-chevron ${adminAccordionOpen || tab === "settings" ? "open" : ""}`}>
               <ChevronUp size={16} />
             </div>
           </button>
