@@ -975,6 +975,23 @@ function App() {
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerStatusFilter, setCustomerStatusFilter] = useState("All");
+  // New Order / Catalog Management State
+  const [newOrderModalOpen, setNewOrderModalOpen] = useState(false);
+  const [newOrderForm, setNewOrderForm] = useState({
+    id: "",
+    customer: "",
+    customerPhone: "",
+    address: "",
+    notes: "",
+    items: "",
+    total: "",
+    paymentMethod: "Cash on Delivery",
+    paymentStatus: "Pending",
+    status: "Processing",
+    courierName: "GreenBasket Express",
+    riderName: ""
+  });
+
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
   const [viewOrdersCustomer, setViewOrdersCustomer] = useState(null);
@@ -1326,6 +1343,122 @@ function App() {
       playChime();
     }
     triggerToast(`🔔 New Order #${normalized.id} received from ${normalized.customer}! Total: $${Number(normalized.total || 0).toFixed(2)}`);
+  };
+
+  const handleOpenNewOrderModal = () => {
+    const nextNum = 1000 + orders.length + 1;
+    setNewOrderForm({
+      id: "GB-" + nextNum,
+      customer: "",
+      customerPhone: "",
+      address: "",
+      notes: "",
+      items: "",
+      total: "",
+      paymentMethod: "Cash on Delivery",
+      paymentStatus: "Pending",
+      status: "Processing",
+      courierName: "GreenBasket Express",
+      riderName: ""
+    });
+    setNewOrderModalOpen(true);
+  };
+
+  const handleSaveNewOrder = (e) => {
+    e.preventDefault();
+    if (!newOrderForm.customer.trim()) {
+      triggerToast("Please enter customer name");
+      return;
+    }
+    if (!newOrderForm.address.trim()) {
+      triggerToast("Please enter delivery address");
+      return;
+    }
+
+    const orderId = newOrderForm.id.trim() || ("GB-" + Math.floor(1000 + Math.random() * 9000));
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }) +
+      " " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+
+    const newOrderObj = {
+      id: orderId,
+      customer: newOrderForm.customer.trim(),
+      customerName: newOrderForm.customer.trim(),
+      customerPhone: newOrderForm.customerPhone.trim(),
+      phone: newOrderForm.customerPhone.trim(),
+      address: newOrderForm.address.trim(),
+      deliveryAddress: newOrderForm.address.trim(),
+      notes: newOrderForm.notes.trim(),
+      items: newOrderForm.items.trim() || "Fresh Grocery Pack",
+      total: Number(newOrderForm.total) || 0,
+      paymentMethod: newOrderForm.paymentMethod || "Cash on Delivery",
+      paymentStatus: newOrderForm.paymentStatus || "Pending",
+      status: newOrderForm.status || "Processing",
+      date: formattedDate,
+      trackingId: "GB-TRK-" + orderId.replace(/\D/g, ""),
+      trackingStage: newOrderForm.status === "Delivered" ? "delivered" : newOrderForm.status === "Shipped" ? "on_the_way" : "placed",
+      courierName: newOrderForm.courierName || "GreenBasket Express",
+      riderName: newOrderForm.riderName || "Pending Assignment",
+      riderPhone: "",
+      estimatedDelivery: newOrderForm.status === "Delivered" ? "Delivered" : "Today within 2 hours",
+      currentCheckpoint: "Central Sorting Hub - Order Confirmed",
+      trackingTimeline: [
+        {
+          stage: "placed",
+          title: "Order Confirmed",
+          time: now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+          note: "New order catalog entry created by Store Admin"
+        }
+      ]
+    };
+
+    // 1. Update orders (sorted recent first)
+    const updatedOrders = [newOrderObj, ...orders.filter(o => o.id !== orderId)].sort(sortOrdersRecentFirst);
+    setOrders(updatedOrders);
+    localStorage.setItem("greenbasket_orders", JSON.stringify(updatedOrders));
+
+    // 2. Update Customer Control
+    const cPhone = newOrderObj.customerPhone;
+    const cName = newOrderObj.customer;
+    let nextCusts = [...customers];
+    const cIdx = nextCusts.findIndex(c => 
+      (cPhone && c.phone === cPhone) || 
+      (cName && c.name.toLowerCase() === cName.toLowerCase())
+    );
+    if (cIdx >= 0) {
+      nextCusts[cIdx] = {
+        ...nextCusts[cIdx],
+        totalOrders: (Number(nextCusts[cIdx].totalOrders) || 0) + 1,
+        totalSpent: (Number(nextCusts[cIdx].totalSpent) || 0) + Number(newOrderObj.total || 0),
+        lastOrderDate: "Today",
+        address: newOrderObj.address || nextCusts[cIdx].address,
+        phone: cPhone || nextCusts[cIdx].phone
+      };
+    } else {
+      const newC = {
+        id: "CUST-" + (1000 + nextCusts.length + 1),
+        name: cName,
+        phone: cPhone || "N/A",
+        email: "",
+        address: newOrderObj.address,
+        status: "Active",
+        totalOrders: 1,
+        totalSpent: Number(newOrderObj.total || 0),
+        lastOrderDate: "Today",
+        joinedDate: "Today",
+        notes: "Created via Admin New Order Catalog"
+      };
+      nextCusts = [newC, ...nextCusts];
+    }
+    setCustomers(nextCusts);
+    localStorage.setItem("greenbasket_customers", JSON.stringify(nextCusts));
+
+    // 3. Sync to Cloud Gist
+    syncToGist(products, storeSettings, updatedOrders, employees, registeredUsers, nextCusts);
+
+    // 4. Close & notify
+    setNewOrderModalOpen(false);
+    triggerToast(`New Order #${newOrderObj.id} (নিউ ক্যাটালগ) created successfully!`);
   };
 
   const handleIncomingNewCustomer = (incomingCust) => {
@@ -2961,6 +3094,17 @@ function App() {
                 </button>
               </>
             )}
+
+            {tab === "orders" && (
+              <button
+                type="button"
+                className="primary"
+                onClick={handleOpenNewOrderModal}
+                title="Create a new customer order / catalog entry"
+              >
+                <Plus size={16} /> + New Order (নিউ ক্যাটালগ)
+              </button>
+            )}
           </div>
         </div>
 
@@ -3421,7 +3565,7 @@ function App() {
                 </h3>
                 <span className="muted">Live Order Tracking, Delivery Address & Payment Management</span>
               </div>
-              <div className="order-head-tools">
+              <div className="order-head-tools" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                 <div className="order-search-box">
                   <Search size={14} />
                   <input
@@ -3436,6 +3580,15 @@ function App() {
                     </button>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={handleOpenNewOrderModal}
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
+                  title="Create a new customer order / catalog entry"
+                >
+                  <Plus size={15} /> + New Order (নিউ ক্যাটালগ)
+                </button>
               </div>
             </div>
 
@@ -6579,6 +6732,256 @@ function App() {
                     style={{ padding: "10px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700 }}
                   >
                     {editingCustomer ? "Update Profile" : "Save Customer"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* CREATE NEW ORDER (NEW CATALOG) MODAL */}
+        {newOrderModalOpen && (
+          <div className="modal-backdrop" onClick={() => setNewOrderModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "620px", padding: "26px", maxHeight: "90vh", overflowY: "auto" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#eef7ea", color: "#2f6b1b", display: "grid", placeItems: "center" }}>
+                    <ShoppingBag size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      Create New Order (নতুন ক্যাটালগ)
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      Add a new customer order entry to GreenBasket Order Catalog
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNewOrderModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveNewOrder} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Order ID
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newOrderForm.id}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, id: e.target.value })}
+                      placeholder="e.g. GB-1935"
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Customer Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newOrderForm.customer}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, customer: e.target.value })}
+                      placeholder="e.g. Tanvir Ahmed"
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Customer Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newOrderForm.customerPhone}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, customerPhone: e.target.value })}
+                      placeholder="e.g. +880 1712-345678"
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Total Amount ($ / ৳) *
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      required
+                      value={newOrderForm.total}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, total: e.target.value })}
+                      placeholder="e.g. 24.50"
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                    Delivery Address *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newOrderForm.address}
+                    onChange={(e) => setNewOrderForm({ ...newOrderForm, address: e.target.value })}
+                    placeholder="House, Road, Area, City"
+                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                    <label style={{ fontSize: "12px", fontWeight: 700, color: "#334155" }}>
+                      Ordered Items Summary *
+                    </label>
+                    <select
+                      onChange={(e) => {
+                        const p = products.find(prod => String(prod.id) === e.target.value);
+                        if (p) {
+                          const currentItems = newOrderForm.items ? newOrderForm.items + ", " : "";
+                          const currentTotal = Number(newOrderForm.total) || 0;
+                          const pPrice = Number(p.discountPrice || p.price) || 0;
+                          setNewOrderForm({
+                            ...newOrderForm,
+                            items: `${currentItems}${p.name} (1)`,
+                            total: (currentTotal + pPrice).toFixed(2)
+                          });
+                          e.target.value = "";
+                        }
+                      }}
+                      style={{ padding: "3px 8px", borderRadius: "6px", border: "1px solid #cbd5e1", fontSize: "11px", color: "#166534", background: "#f0fdf4", cursor: "pointer", fontWeight: 600 }}
+                    >
+                      <option value="">+ Quick Pick from Product Catalog...</option>
+                      {products.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} — ${(p.discountPrice || p.price).toFixed(2)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <textarea
+                    rows={2}
+                    required
+                    value={newOrderForm.items}
+                    onChange={(e) => setNewOrderForm({ ...newOrderForm, items: e.target.value })}
+                    placeholder="e.g. Organic Avocados (2), Farm Milk (1), Red Apples (1kg)"
+                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box", resize: "vertical" }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Payment Method
+                    </label>
+                    <select
+                      value={newOrderForm.paymentMethod}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, paymentMethod: e.target.value })}
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box", background: "#fff" }}
+                    >
+                      <option value="Cash on Delivery">Cash on Delivery</option>
+                      <option value="bKash">bKash</option>
+                      <option value="Nagad">Nagad</option>
+                      <option value="Credit Card">Credit Card</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Payment Status
+                    </label>
+                    <select
+                      value={newOrderForm.paymentStatus}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, paymentStatus: e.target.value })}
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box", background: "#fff" }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Delivery Status
+                    </label>
+                    <select
+                      value={newOrderForm.status}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, status: e.target.value })}
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box", background: "#fff" }}
+                    >
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Delivered">Delivered</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                      Courier Partner
+                    </label>
+                    <select
+                      value={newOrderForm.courierName}
+                      onChange={(e) => setNewOrderForm({ ...newOrderForm, courierName: e.target.value })}
+                      style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box", background: "#fff" }}
+                    >
+                      <option value="GreenBasket Express">GreenBasket Express</option>
+                      <option value="Steadfast Courier">Steadfast Courier</option>
+                      <option value="RedX">RedX</option>
+                      <option value="Pathao Courier">Pathao Courier</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "4px" }}>
+                    Special Instructions / Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={newOrderForm.notes}
+                    onChange={(e) => setNewOrderForm({ ...newOrderForm, notes: e.target.value })}
+                    placeholder="e.g. Call before delivery, ring doorbell"
+                    style={{ width: "100%", padding: "9px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", boxSizing: "border-box" }}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px", paddingTop: "12px", borderTop: "1px solid #f1f5f9" }}>
+                  <button
+                    type="button"
+                    className="soft"
+                    onClick={() => setNewOrderModalOpen(false)}
+                    style={{ padding: "9px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 600 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="primary"
+                    style={{ padding: "9px 24px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <CheckCircle2 size={16} /> Save Order (ক্যাটালগ সেভ করুন)
                   </button>
                 </div>
               </form>
