@@ -5,6 +5,7 @@ import {
   DollarSign,
   Users,
   Plus,
+  FolderPlus,
   X,
   Search,
   Leaf,
@@ -921,6 +922,31 @@ function App() {
 
 
 
+  // Categories State & Management
+  const defaultCategories = [
+    "Vegetables",
+    "Fruits",
+    "Herbs & Greens",
+    "Dairy",
+    "Bakery",
+    "Pantry",
+    "Beverages"
+  ];
+
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = localStorage.getItem("greenbasket_categories");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return defaultCategories;
+  });
+
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
   // Products State
   const [products, setProducts] = useState(() => {
     try {
@@ -1326,6 +1352,50 @@ function App() {
       playChime();
     }
     triggerToast(`🔔 New Order #${normalized.id} received from ${normalized.customer}! Total: $${Number(normalized.total || 0).toFixed(2)}`);
+  };
+
+  const handleAddCategory = (e) => {
+    e.preventDefault();
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) {
+      triggerToast("Please enter a category name");
+      return;
+    }
+    const exists = categories.some((c) => c.toLowerCase() === trimmed.toLowerCase());
+    if (exists) {
+      triggerToast(`Category "${trimmed}" already exists`);
+      return;
+    }
+    const updated = [...categories, trimmed];
+    setCategories(updated);
+    localStorage.setItem("greenbasket_categories", JSON.stringify(updated));
+    setSelectedCategory(trimmed);
+    setForm((prev) => ({ ...prev, category: trimmed }));
+    setNewCategoryName("");
+    setCategoryModalOpen(false);
+    triggerToast(`New category "${trimmed}" added to Product Catalog!`);
+    syncToGist(products, storeSettings, orders, employees, registeredUsers, customers, updated);
+  };
+
+  const handleDeleteCategory = (catToDelete) => {
+    if (categories.length <= 1) {
+      triggerToast("At least one category must remain");
+      return;
+    }
+    const count = products.filter((p) => p.category === catToDelete).length;
+    if (count > 0) {
+      if (!window.confirm(`Category "${catToDelete}" has ${count} product(s). Are you sure you want to remove it?`)) {
+        return;
+      }
+    }
+    const updated = categories.filter((c) => c !== catToDelete);
+    setCategories(updated);
+    localStorage.setItem("greenbasket_categories", JSON.stringify(updated));
+    if (selectedCategory === catToDelete) {
+      setSelectedCategory("All");
+    }
+    triggerToast(`Category "${catToDelete}" removed`);
+    syncToGist(products, storeSettings, orders, employees, registeredUsers, customers, updated);
   };
 
   const handleIncomingNewCustomer = (incomingCust) => {
@@ -2440,15 +2510,6 @@ function App() {
   const sales = orders.reduce((s, o) => s + Number(o.total || 0), 0);
   const customersCount = new Set(orders.map((o) => o.customer)).size;
 
-  const categories = [
-    "Vegetables",
-    "Fruits",
-    "Herbs & Greens",
-    "Dairy",
-    "Bakery",
-    "Pantry",
-    "Beverages"
-  ];
   const allCategoryTabs = ["All", ...categories];
 
   const filtered = products.filter((p) => {
@@ -2987,6 +3048,15 @@ function App() {
                 >
                   <RotateCcw size={15} /> Reset Default
                 </button>
+                <button
+                  type="button"
+                  className="soft"
+                  onClick={() => setCategoryModalOpen(true)}
+                  title="Create a new product category"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                >
+                  <FolderPlus size={15} /> + New Category
+                </button>
                 <button className="soft" onClick={() => setShowForm(!showForm)}>
                   {showForm ? <X size={16} /> : <Plus size={16} />}
                   {showForm ? "Close Form" : "Open Form"}
@@ -2995,7 +3065,7 @@ function App() {
             </div>
 
             {/* Category Filter Pills */}
-            <div className="category-filter-pills">
+            <div className="category-filter-pills" style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "center" }}>
               {allCategoryTabs.map((cat) => (
                 <button
                   key={cat}
@@ -3006,6 +3076,24 @@ function App() {
                   {cat} {cat === "All" ? `(${products.length})` : `(${products.filter((p) => p.category === cat).length})`}
                 </button>
               ))}
+              <button
+                type="button"
+                className="pill-btn add-category-pill"
+                onClick={() => setCategoryModalOpen(true)}
+                title="Add a new category to Product Catalog"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  background: "#eef7ea",
+                  color: "#285419",
+                  border: "1.5px dashed #7cb365",
+                  fontWeight: 700,
+                  cursor: "pointer"
+                }}
+              >
+                <Plus size={13} /> + New Category
+              </button>
             </div>
 
             {/* Product Edit / Add Form */}
@@ -3055,16 +3143,43 @@ function App() {
                   </label>
 
                   <label>
-                    Category
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <span>Category *</span>
+                      <button
+                        type="button"
+                        onClick={() => setCategoryModalOpen(true)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#2f6b1b",
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px",
+                          padding: 0
+                        }}
+                      >
+                        <Plus size={11} /> + New Category
+                      </button>
+                    </div>
                     <select
                       value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                      onChange={(e) => {
+                        if (e.target.value === "__NEW__") {
+                          setCategoryModalOpen(true);
+                        } else {
+                          setForm({ ...form, category: e.target.value });
+                        }
+                      }}
                     >
                       {categories.map((c) => (
                         <option key={c} value={c}>
                           {c}
                         </option>
                       ))}
+                      <option value="__NEW__">+ Add New Category...</option>
                     </select>
                   </label>
 
@@ -6582,6 +6697,116 @@ function App() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MANAGE & ADD NEW CATEGORY MODAL */}
+        {categoryModalOpen && (
+          <div className="modal-backdrop" onClick={() => setCategoryModalOpen(false)}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: "480px", padding: "26px" }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "#eef7ea", color: "#2f6b1b", display: "grid", placeItems: "center" }}>
+                    <FolderPlus size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>
+                      Add New Category (নতুন ক্যাটাগরি)
+                    </h3>
+                    <p style={{ margin: "2px 0 0", color: "#64748b", fontSize: "12px" }}>
+                      Create and manage categories for your product catalog
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCategoryModalOpen(false)}
+                  style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", width: "32px", height: "32px", display: "grid", placeItems: "center", cursor: "pointer", color: "#64748b" }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Add New Category Input Form */}
+              <form onSubmit={handleAddCategory} style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. Organic Spices, Seafood, Snacks..."
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  style={{ flex: 1, padding: "10px 14px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px", outline: "none", boxSizing: "border-box" }}
+                />
+                <button
+                  type="submit"
+                  className="primary"
+                  style={{ padding: "10px 18px", borderRadius: "8px", fontSize: "13px", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "6px", whiteSpace: "nowrap" }}
+                >
+                  <Plus size={15} /> Add Category
+                </button>
+              </form>
+
+              {/* Existing Categories List */}
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#334155", marginBottom: "8px" }}>
+                  Active Categories ({categories.length})
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", maxHeight: "200px", overflowY: "auto", padding: "4px 0" }}>
+                  {categories.map((c) => {
+                    const count = products.filter(p => p.category === c).length;
+                    return (
+                      <div
+                        key={c}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          background: "#f8fafc",
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "20px",
+                          padding: "6px 12px",
+                          fontSize: "12px",
+                          color: "#1e293b"
+                        }}
+                      >
+                        <span style={{ fontWeight: 600 }}>{c}</span>
+                        <span style={{ fontSize: "10px", color: "#64748b", background: "#e2e8f0", borderRadius: "10px", padding: "1px 6px" }}>
+                          {count}
+                        </span>
+                        {categories.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(c)}
+                            title={`Delete category "${c}"`}
+                            style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", padding: "0 2px", display: "grid", placeItems: "center" }}
+                            onMouseEnter={(e) => e.currentTarget.style.color = "#dc2626"}
+                            onMouseLeave={(e) => e.currentTarget.style.color = "#94a3b8"}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px", paddingTop: "14px", borderTop: "1px solid #f1f5f9" }}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => setCategoryModalOpen(false)}
+                  style={{ padding: "8px 20px", borderRadius: "8px", fontSize: "12px", fontWeight: 700 }}
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         )}
